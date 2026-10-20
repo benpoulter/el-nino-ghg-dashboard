@@ -908,7 +908,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
     <div class="hd"><span class="lbl">Station colour</span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
     <div class="body">
       <div class="seg" id="anomMode"><button data-m="raw" class="on">vs 5-yr mean</button><button data-m="detr">trend-adjusted</button><button data-m="yoy">12-mo growth</button></div>
-      <div id="stLegends"></div>
+      <div id="stLegends"></div><div class="note" style="display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 14 14"><defs><pattern id="hl" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="3" fill="#fdd49e"/><line x1="0" y1="0" x2="0" y2="3" stroke="#142161" stroke-width="1.3"/></pattern></defs><circle cx="7" cy="7" r="6" fill="url(#hl)" stroke="#142161" stroke-width="1"/></svg> hatched = no data since before Sep 2026 (e.g. NOAA flasks end Dec 2025)</div>
       <p class="note" id="anomNote"></p>
     </div>
   </div>
@@ -1029,6 +1029,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
    <li><b>NOAA:</b> monthly means are used exactly as published by GML (flagged samples already excluded by NOAA). Sites whose last published month is before 2024 are omitted as inactive.</li>
    <li><b>Anomaly (default colouring):</b> latest monthly mean minus the mean of the same calendar month over the previous five years. At least three of those five years must exist; otherwise the station is grey. Because atmospheric CO₂ grows about 2.5 ppm per year and CH₄ about 10 ppb per year, this anomaly is positive almost everywhere for those gases; it answers “how much higher than the recent past”, not “is this unusual”. Each measurement type has its own colour scale (CO₂ 0–12 ppm, CH₄ 0–60 ppb, PM₂.₅ ±20 µg/m³).</li>
    <li><b>Trend-adjusted anomaly:</b> a straight line is fitted to the previous five years’ values for the same calendar month and extrapolated to the latest year; the anomaly is the latest value minus that expectation. Positive means above the station’s recent growth path.</li>
+   <li><b>Stale markers:</b> a station is hatched when its latest monthly value is older than September 2026, i.e. it has not reported in the month before the snapshot. All NOAA flask sites are hatched because GML’s public monthly files end in December 2025.</li>
    <li><b>Year-on-year change:</b> latest month minus the same month one year earlier.</li>
    <li><b>OpenAQ PM₂.₅:</b> OpenAQ's monthly aggregates (mean of daily means from hourly reference-monitor data) are used as published, including months with partial coverage. The anomaly definitions are the same as for CO₂, in µg/m³. Only PM₂.₅ is included from OpenAQ in this snapshot. Monitors are reference-grade only (no low-cost sensors) and were thinned to one per 0.75° cell to keep the page small, so dense urban networks are under-represented. Many monitors have fewer than five years in OpenAQ; sites with fewer than three baseline years are grey. The latest month (October 2026) is partial.</li>
   </ul>
@@ -1314,18 +1315,24 @@ document.getElementById('ckFire').addEventListener('change',e=>{e.target.checked
 /* ---------- stations ---------- */
 const groups={ICOS:L.layerGroup().addTo(map),NOAA:L.layerGroup().addTo(map),OpenAQ:L.layerGroup()};
 const counts={ICOS:'nIcos',NOAA:'nNoaa',OpenAQ:'nAq'};
-const tri=f=>L.divIcon({className:'',html:`<svg width="18" height="18" viewBox="0 0 18 18" style="overflow:visible"><path d="M9 1.5 17 16H1Z" fill="${f}" stroke="#142161" stroke-width="1.2"/></svg>`,iconSize:[18,18],iconAnchor:[9,9]});
-const sq=f=>L.divIcon({className:'',html:`<svg width="9" height="9" viewBox="0 0 9 9" style="overflow:visible"><rect x="0.5" y="0.5" width="8" height="8" rx="1.2" fill="${f}" stroke="rgba(20,33,97,.55)" stroke-width="1"/></svg>`,iconSize:[9,9],iconAnchor:[4.5,4.5]});
 function cur(s){return s.vars[sel[s.net]];}
+const HATCH=(id,w)=>`<defs><pattern id="${id}" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="3" fill="${w}"/><line x1="0" y1="0" x2="0" y2="3" stroke="#142161" stroke-width="1.3"/></pattern></defs>`;
+let hid=0;
+const tri=(f,st)=>{const id='h'+(hid++);return L.divIcon({className:'',html:`<svg width="18" height="18" viewBox="0 0 18 18" style="overflow:visible">${st?HATCH(id,f):''}<path d="M9 1.5 17 16H1Z" fill="${st?`url(#${id})`:f}" stroke="#142161" stroke-width="1.2"/></svg>`,iconSize:[18,18],iconAnchor:[9,9]});};
+const sq=(f,st)=>{const id='h'+(hid++);return L.divIcon({className:'',html:`<svg width="9" height="9" viewBox="0 0 9 9" style="overflow:visible">${st?HATCH(id,f):''}<rect x="0.5" y="0.5" width="8" height="8" rx="1.2" fill="${st?`url(#${id})`:f}" stroke="rgba(20,33,97,.55)" stroke-width="1"/></svg>`,iconSize:[9,9],iconAnchor:[4.5,4.5]});};
+const circ=(f,st)=>{const id='h'+(hid++);return L.divIcon({className:'',html:`<svg width="16" height="16" viewBox="0 0 16 16" style="overflow:visible">${st?HATCH(id,f):''}<circle cx="8" cy="8" r="7" fill="${st?`url(#${id})`:f}" stroke="#142161" stroke-width="1.2"/></svg>`,iconSize:[16,16],iconAnchor:[8,8]});};
+const STALE_BEFORE=[2026,9];
+function isStale(s){const d=cur(s);if(!d)return false;const [y,m]=d.latest;return y<STALE_BEFORE[0]||(y===STALE_BEFORE[0]&&m<STALE_BEFORE[1]);}
+
 function colorOf(s){
   const d=cur(s); if(!d) return null; const V=VARS[sel[s.net]]; const val=anomMode==='raw'?d.anom:anomMode==='detr'?d.detr:d.yoy; if(val==null) return '#9aa5b8';
   if(V.div||anomMode==='detr'){const [a,b]=V.detr;return ramp((val-a)/(b-a),DIV);} const [a,b]=anomMode==='yoy'?V.yoy:V.raw;return ramp((val-a)/(b-a),SEQ);
 }
-function popup(s){const d=cur(s),V=VARS[sel[s.net]];const [y,m,v]=d.latest;const a=anomMode==='raw'?d.anom:anomMode==='detr'?d.detr:d.yoy;return `<b>${s.name}</b> <span style="color:var(--text-light)">${s.id} · ${s.net}</span><br>${s.lat.toFixed(2)}°, ${s.lon.toFixed(2)}°${s.elev!=null?` · ${Math.round(s.elev)} m asl`:''}${s.height?` · inlet ${s.height} m`:''}<br>${V.label} ${MON[m-1]} ${y}: <b>${v.toFixed(V.dp)} ${V.unit}</b> · anomaly <b>${a==null?'n/a':(a>0?'+':'')+a.toFixed(V.dp)} ${V.unit}</b><br><span style="color:var(--blue)">Click for time series</span>`;}
+function popup(s){const d=cur(s),V=VARS[sel[s.net]];const [y,m,v]=d.latest;const a=anomMode==='raw'?d.anom:anomMode==='detr'?d.detr:d.yoy;return `<b>${s.name}</b> <span style="color:var(--text-light)">${s.id} · ${s.net}</span><br>${s.lat.toFixed(2)}°, ${s.lon.toFixed(2)}°${s.elev!=null?` · ${Math.round(s.elev)} m asl`:''}${s.height?` · inlet ${s.height} m`:''}<br>${V.label} ${MON[m-1]} ${y}: <b>${v.toFixed(V.dp)} ${V.unit}</b> · anomaly <b>${a==null?'n/a':(a>0?'+':'')+a.toFixed(V.dp)} ${V.unit}</b>${isStale(s)?'<br><span style="color:var(--coral)">No data in the last month (hatched)</span>':''}<br><span style="color:var(--blue)">Click for time series</span>`;}
 function buildNet(net){
   const g=groups[net]; g.clearLayers(); let n=0;
   for(const s of NETS[net]){ if(!cur(s)) continue; n++; const c=colorOf(s);
-    const mk=net==='ICOS'?L.circleMarker([s.lat,s.lon],{pane:'stations',radius:7,color:'#142161',weight:1.2,fillColor:c,fillOpacity:.95}):L.marker([s.lat,s.lon],{pane:'stations',icon:(net==='NOAA'?tri:sq)(c)});
+    const mk=L.marker([s.lat,s.lon],{pane:'stations',icon:(net==='ICOS'?circ:net==='NOAA'?tri:sq)(c,isStale(s))});
     mk.bindTooltip(popup(s),{sticky:true}).on('click',()=>showChart(s)); g.addLayer(mk); }
   document.getElementById(counts[net]).textContent=`${n} sites · ${VARS[sel[net]].label}`;
 }
@@ -1500,7 +1507,7 @@ function renderList(){const net=document.getElementById('slNet').value,sort=docu
   for(const n in NETS){if(net==='ghg'?n==='OpenAQ':(net!=='all'&&n!==net))continue;for(const s of NETS[n]){const v=metricOf(s);if(v==null&&sort!=='name')continue;if(q&&!(s.name+' '+s.id+' '+(s.country||'')).toLowerCase().includes(q))continue;rows.push({s,v});}}
   rows.sort((a,b)=>sort==='name'?a.s.name.localeCompare(b.s.name):sort==='desc'?(b.v??-1e9)-(a.v??-1e9):(a.v??1e9)-(b.v??1e9));rows=rows.slice(0,400);
   const lab=anomMode==='raw'?'vs 5-yr mean':anomMode==='detr'?'trend-adjusted':'12-mo growth';
-  document.getElementById('slRows').innerHTML=rows.map((r,i)=>{const V=VARS[sel[r.s.net]];return `<div class="r" data-net="${r.s.net}" data-id="${r.s.id}"><span class="sw" style="background:${colorOf(r.s)||'#9aa5b8'}"></span><span><b>${r.s.name}</b> <small>${r.s.id} · ${r.s.net} · ${r.s.country||''}</small></span><span class="val">${r.v==null?'–':(r.v>0?'+':'')+r.v.toFixed(V.dp)} <small>${V.unit}</small></span></div>`;}).join('')||'<div style="padding:12px 14px;color:var(--text-light)">No stations match.</div>';
+  document.getElementById('slRows').innerHTML=rows.map((r,i)=>{const V=VARS[sel[r.s.net]];return `<div class="r" data-net="${r.s.net}" data-id="${r.s.id}"><span class="sw" style="background:${isStale(r.s)?`repeating-linear-gradient(45deg,${colorOf(r.s)||'#9aa5b8'} 0 2px,#142161 2px 3px)`:(colorOf(r.s)||'#9aa5b8')}"></span><span><b>${r.s.name}</b> <small>${r.s.id} · ${r.s.net} · ${r.s.country||''}</small></span><span class="val">${r.v==null?'–':(r.v>0?'+':'')+r.v.toFixed(V.dp)} <small>${V.unit}</small></span></div>`;}).join('')||'<div style="padding:12px 14px;color:var(--text-light)">No stations match.</div>';
   slist.querySelector('.ttl').firstChild.textContent=`Stations · ${lab} (${rows.length})`;}
 ['slNet','slSort','slQ'].forEach(id=>document.getElementById(id).addEventListener('input',renderList));
 document.getElementById('slRows').addEventListener('click',e=>{const r=e.target.closest('.r');if(!r)return;const s=NETS[r.dataset.net].find(x=>String(x.id)===r.dataset.id);if(!s)return;map.setView([s.lat,s.lon],Math.max(map.getZoom(),4),{animate:true});setTimeout(()=>showChart(s),350);});
