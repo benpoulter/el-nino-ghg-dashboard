@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""Single-file orchestrator for the El Niño GHG Dashboard data snapshot.
+
+Usage: python3 build_all.py <step>   (see run_all.sh for the order)
+All outputs land in ./data ; `assemble` writes ../index.html from template.html + data.
+The slow/large steps (oco2, s3ndvi, openaq, gibs) are resumable: rerun to continue.
+This consolidates code that was first run interactively; the individual helper scripts
+(icos_ch4.py, openaq_fetch.py, geoscf_fetch2.py, bg_fetch.py, ndvi_hi.py, build_stations.py,
+build_aq.py, assemble.py) are kept alongside as references.
+"""
+import os, sys, re, io, csv, json, glob, gzip, base64, html, calendar, subprocess, datetime as dt
+import numpy as np
+D='data'; os.makedirs(D,exist_ok=True)
+MONTHS=[(2025,10),(2025,11),(2025,12)]+[(2026,m) for m in range(1,11)]   # <- advance these when refreshing
+SNAPSHOT=dt.date.today().strftime('%-d %b %Y')
+def sh(cmd): subprocess.run(cmd,shell=True,check=True)
+def metrics(pts):
+    pts=sorted(pts); y,m,v=pts[-1]
+    base=[p[2] for p in pts if p[1]==m and y-5<=p[0]<=y-1]; prev=[p[2] for p in pts if p[0]==y-1 and p[1]==m]
+    return dict(latest=[y,m,v],anom=round(v-sum(base)/len(base),2) if len(base)>=3 else None,yoy=round(v-prev[0],2) if prev else None,nbase=len(base),series=[list(p) for p in pts])
+
+# ---------------- NOAA GGRN flasks (CO2, CH4) + Mauna Loa preliminary ----------------
+def step_noaa():
+    for gas in ('co2','ch4'):
+        os.makedirs(f'{D}/noaa_{gas}',exist_ok=True)
+        base=f'https://gml.noaa.gov/aftp/data/trace_gases/{gas}/flask/surface/txt/'
+        lst=subprocess.run(f'curl -s {base}',shell=True,capture_output=True,text=True).stdout
+        for f in sorted(set(re.findall(rf'{gas}_[a-z0-9]+_surface-flask_1_ccgg_month\.txt',lst))):
+            sh(f'curl -s -o {D}/noaa_{gas}/{f} {base}{f}')
+    sh(f'curl -s "https://gml.noaa.gov/dv/site/?program=ccgg" -o {D}/noaa_sites.html')
+    sh(f'curl -s -o {D}/co2_mm_mlo.csv https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_mm_mlo.csv')
+
+# ---------------- ICOS (CO2, CH4) via SPARQL + anonymous /cpb ----------------
+Q_ST='''prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
+select ?id ?name ?lat ?lon ?elev ?country where { ?st a cpmeta:AS . ?st cpmeta:hasStationId ?id ; cpmeta:hasName ?name ; cpmeta:hasLatitude ?lat ; cpmeta:hasLongitude ?lon .
+ optional{?st cpmeta:hasElevation ?elev} optional{?st cpmeta:countryCode ?country} }'''
+def Q_OBJ(gas):
+    G=gas.capitalize()
+    return f'''prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
+prefix prov: <http://www.w3.org/ns/prov#>
+select ?dobj ?specLabel ?stId ?samplingHeight ?timeStart ?timeEnd where {{
+ values ?spec {{<http://meta.icos-cp.eu/resources/cpmeta/atc{G}NrtGrowingDataObject> <http://meta.icos-cp.eu/resources/cpmeta/atc{G}L2DataObject>}}
+ ?dobj cpmeta:hasObjectSpec ?spec . ?spec rdfs:label ?specLabel .
+ ?dobj cpmeta:wasAcquiredBy ?acq . ?acq prov:wasAssociatedWith ?st . ?st cpmeta:hasStationId ?stId .
+ optional {{?acq cpmeta:hasSamplingHeight ?samplingHeight}}
+ ?dobj cpmeta:hasStartTime|(cpmeta:wasAcquiredBy/prov:startedAtTime) ?timeStart .
+ ?dobj cpmeta:hasEndTime|(cpmeta:wasAcquiredBy/prov:endedAtTime) ?timeEnd .
+ filter not exists {{[] cpmeta:isNextVersionOf ?dobj}} }}'''
+def sparql(q):
+    import requests
+    r=requests.post('https://meta.icos-cp.eu/sparql',data={'query':q},headers={'Accept':'text/csv'}); r.raise_for_status()
+    return list(csv.DictReader(io.StringIO(r.text)))
+def step_icos():
+    import urllib.request, collections
+    from icoscp_core.icos import meta
+    from icoscp_core.cpb import TableRequest, codec_from_dobj_meta
+    smeta={r['id']:r for r in sparql(Q_ST)}
+    H={"Accept":"application/octet-stream","Content-Type":"application/json","User-Agent":"Mozilla/5.0","Referer":"https://data.icos-cp.eu/portal/","Origin":"https://data.icos-cp.eu"}
+    out={}
+    for gas in ('co2','ch4'):
+        rows=sparql(Q_OBJ(gas)); by=collections.defaultdict(list)
+        for r in rows: by[r['stId']].append(r)
+        for sid,objs in by.items():
+            if sid not in smeta: continue
+            h=max(float(o['samplingHeight'] or 0) for o in objs); sel=[o for o in objs if float(o['samplingHeight'] or 0)==h]
+            monthly={}
+            for o in sorted(sel,key=lambda o:('NRT' in o['specLabel'],o['timeStart'])):
+                try:
+                    dobj=meta.get_dobj_meta(o['dobj']); codec=codec_from_dobj_meta(dobj,TableRequest(['TIMESTAMP',gas],None,None))
+                    req=urllib.request.Request("https://data.icos-cp.eu/cpb",data=json.dumps(codec.json_payload).encode(),headers=H,method="POST")
+                    arr=codec.parse_cpb_response(io.BytesIO(urllib.request.urlopen(req,timeout=90).read()),False)
+                except Exception as e: print('fail',sid,gas,e); continue
+                isL2='Release' in o['specLabel']; ts=arr['TIMESTAMP'].astype('datetime64[M]'); v=arr[gas].astype(float); ok=~np.isnan(v)
+                for mo in np.unique(ts[ok]):
+                    vv=v[ok&(ts==mo)]; key=str(mo)
+                    if key in monthly and monthly[key][2] and not isL2: continue
+                    if key in monthly and monthly[key][2]==isL2: s,n,_=monthly[key]; monthly[key]=(s+vv.sum(),n+len(vv),isL2)
+                    else: monthly[key]=(vv.sum(),len(vv),isL2)
+            ser=sorted((k,round(s/n,2)) for k,(s,n,_) in monthly.items() if n>=120)
+            if not ser: continue
+            sm=smeta[sid]; st=out.setdefault(sid,dict(id=sid,net='ICOS',name=sm['name'],country=sm['country'],lat=float(sm['lat']),lon=float(sm['lon']),elev=float(sm['elev']) if sm['elev'] else None,height=h,vars={}))
+            st['vars'][gas]=metrics([(int(k[:4]),int(k[5:7]),v) for k,v in ser]); print(sid,gas,ser[-1],flush=True)
+    json.dump(out,open(f'{D}/icos.json','w'))
+
+# ---------------- OpenAQ ----------------
+def step_openaq():
+    import requests, time, math
+    K=os.environ['OPENAQ_API_KEY']; H={'X-API-Key':K}
+    allr=[]
+    for page in range(1,30):
+        r=requests.get('https://api.openaq.org/v3/locations',params=dict(parameters_id=2,monitor='true',limit=1000,page=page),headers=H); r.raise_for_status()
+        res=r.json()['results']; allr+=res
+        if len(res)<1000: break
+        time.sleep(1.2)
+    cutoff=(dt.datetime.utcnow()-dt.timedelta(days=30)).strftime('%Y-%m-%d')
+    rec=[x for x in allr if x.get('datetimeLast') and x['datetimeLast']['utc']>=cutoff and x.get('coordinates')]
+    cells={}
+    for x in rec:
+        k=(math.floor(x['coordinates']['latitude']/0.75),math.floor(x['coordinates']['longitude']/0.75)); first=(x.get('datetimeFirst') or {}).get('utc','9999')
+        if k not in cells or first<cells[k][0]: cells[k]=(first,x)
+    sel=[v[1] for v in cells.values()]
+    sp=f'{D}/openaq_series.json'; ser=json.load(open(sp)) if os.path.exists(sp) else {}
+    for i,x in enumerate(sel):
+        lid=str(x['id'])
+        if lid in ser: continue
+        sid=[s['id'] for s in x['sensors'] if s['parameter']['id']==2][0]
+        for t in range(3):
+            r=requests.get(f'https://api.openaq.org/v3/sensors/{sid}/days/monthly',params=dict(limit=100,date_from='2019-01-01'),headers=H)
+            if r.status_code==200: ser[lid]=[(m['period']['datetimeFrom']['local'][:7],m['value']) for m in r.json().get('results',[])]; break
+            elif r.status_code==429: time.sleep(10)
+            else: ser[lid]=[]; break
+        time.sleep(1.05)
+        if i%50==0: json.dump(ser,open(sp,'w')); print(i,len(sel),flush=True)
+    json.dump(ser,open(sp,'w'))
+    out=[]
+    for x in sel:
+        s=ser.get(str(x['id']))
+        if not s: continue
+        pts=sorted((int(k[:4]),int(k[5:7]),round(v,1)) for k,v in s if v is not None and 0<=v<1000)
+        if not pts or pts[-1][0]<MONTHS[-1][0]: continue
+        st=dict(id=str(x['id']),net='OpenAQ',name=(x['name'] or f"OpenAQ {x['id']}")[:60],country=x['country']['name'],provider=(x.get('provider') or {}).get('name'),lat=round(x['coordinates']['latitude'],4),lon=round(x['coordinates']['longitude'],4),vars={'pm25':metrics(pts)})
+        out.append(st)
+    json.dump(out,open(f'{D}/aq.json','w'))
+
+def step_stations():
+    s=open(f'{D}/noaa_sites.html').read(); meta={}
+    for r in re.findall(r'<tr[^>]*>(.*?)</tr>',s,re.S):
+        c=[html.unescape(re.sub('<[^>]+>','',x)).strip() for x in re.findall(r'<td[^>]*>(.*?)</td>',r,re.S)]
+        if len(c)>=6:
+            try: meta[c[0].rstrip('*')]=dict(name=c[1],country=c[2],lat=float(c[3]),lon=float(c[4]),elev=float(c[5]) if c[5] else None)
+            except: pass
+    noaa={}
+    for gas in ('co2','ch4'):
+        for f in glob.glob(f'{D}/noaa_{gas}/{gas}_*_month.txt'):
+            code=os.path.basename(f).split('_')[1].upper(); pts=[]
+            for line in open(f):
+                if line.startswith('#'): continue
+                p=line.split()
+                if len(p)==4: pts.append((int(p[1]),int(p[2]),float(p[3])))
+            pts=[p for p in pts if p[0]>=2015]
+            if not pts or pts[-1][0]<MONTHS[-1][0]-2 or code not in meta: continue
+            noaa.setdefault(code,dict(id=code,net='NOAA',**meta[code],vars={}))['vars'][gas]=metrics(pts)
+    # Mauna Loa preliminary extension
+    if 'MLO' in noaa and 'co2' in noaa['MLO']['vars']:
+        d=noaa['MLO']['vars']['co2']; last=tuple(d['series'][-1][:2]); add=[]
+        for line in open(f'{D}/co2_mm_mlo.csv'):
+            p=line.strip().split(',')
+            if p[0].isdigit() and (int(p[0]),int(p[1]))>last: add.append([int(p[0]),int(p[1]),float(p[3])])
+        if add:
+            d.update(metrics([tuple(x) for x in d['series']+add])); d['prelimFrom']=f"{add[0][0]}-{add[0][1]:02d}"
+    icos=json.load(open(f'{D}/icos.json')); aq=json.load(open(f'{D}/aq.json'))
+    json.dump(dict(icos=list(icos.values()),noaa=list(noaa.values()),aq=aq),open(f'{D}/stations.json','w'))
+
+# ---------------- OCO-2 Fwd_FP / Lite 16-day windows ----------------
+def step_oco2():
+    import netCDF4 as nc
+    TOK=os.environ['EARTHDATA_TOKEN']; B='https://oco2.gesdisc.eosdis.nasa.gov/data/OCO2_DATA/'
+    def listing(prod,year):
+        out=subprocess.run(f'curl -s {B}{prod}/{year}/',shell=True,capture_output=True,text=True).stdout
+        return {m[11:17]:m for m in set(re.findall(r'oco2_(?:Fw|Lt)CO2_\d{6}_B[0-9A-Za-z]+_[0-9s]+\.nc4',out))}
+    yrs=sorted(set(y for y,m in MONTHS)); files={}
+    for prod in ('OCO2_L2_Fwd_FP.11.3','OCO2_L2_Fwd_FP.11.2','OCO2_L2_Lite_FP.11.3r'):
+        for y in yrs:
+            for k,f in listing(prod,y).items(): files.setdefault(k,(prod,f))
+    ends=[dt.date(y,m,15) for y,m in MONTHS]; NY,NX=180,360; out=[]
+    os.makedirs(f'{D}/oco2dl',exist_ok=True)
+    for e in ends:
+        S=np.zeros((NY,NX)); N=np.zeros((NY,NX)); n=0; ok=0; srcs=set()
+        for i in range(16):
+            d=e-dt.timedelta(days=i); k=d.strftime('%y%m%d')
+            if k not in files: continue
+            prod,fn=files[k]; path=f'{D}/oco2dl/{fn}'
+            sh(f'curl -s -L -H "Authorization: Bearer {TOK}" -o {path} {B}{prod}/{d.year}/{fn}')
+            try:
+                ds=nc.Dataset(path); x=np.array(ds.variables['xco2'][:],float); q=np.array(ds.variables['xco2_quality_flag'][:]); la=np.array(ds.variables['latitude'][:]); lo=np.array(ds.variables['longitude'][:]); ds.close()
+            except Exception: os.remove(path); continue
+            g=(q==0)&np.isfinite(x)&(x>350)&(x<500); x,la,lo=x[g],la[g],lo[g]
+            iy=np.clip(((90-la)).astype(int),0,NY-1); ix=np.clip(((lo+180)).astype(int),0,NX-1)
+            np.add.at(S,(iy,ix),x); np.add.at(N,(iy,ix),1); n+=len(x); ok+=1; srcs.add(prod); os.remove(path)
+        if ok==0: continue
+        g=np.where(N>0,S/np.maximum(N,1),np.nan)
+        out.append(dict(end=str(e),start=str(e-dt.timedelta(days=15)),days=ok,n=n,cells=int((N>0).sum()),mean=float(np.nanmean(g)),src=sorted(srcs),b64=base64.b64encode(np.where(np.isnan(g),-32768,np.round(g*10)).astype(np.int16).tobytes()).decode()))
+        print(e,ok,n,flush=True)
+    json.dump(dict(res=1,ny=NY,nx=NX,cycles=out),open(f'{D}/oco2_fwd.json','w'))
+
+# ---------------- remaining steps delegate to the reference scripts ----------------
+def step_modis():  sh('python3 ndvi_hi.py')          # writes ndvi_hi/anom_*.png + meta.json
+def step_geoscf(): sh('python3 geoscf_fetch2.py')    # PM2.5 monthly npy, then pm.json via assemble helper
+def step_gibs():   sh('python3 bg_fetch.py')         # AIRS CO + monthly VIIRS fire grids
+def step_s3ndvi():
+    print('Sentinel-3 NDVI: see README step 7; the interactive code is reproduced in s3ndvi.py'); sh('python3 s3ndvi.py')
+def step_enso():
+    os.makedirs(f'{D}/enso',exist_ok=True)
+    for u,f in [('https://www.cpc.ncep.noaa.gov/data/indices/wksst9120.for','wksst.txt'),('https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt','oni.txt'),('https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_mm_gl.csv','co2_mm_gl.csv'),('https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_gr_gl.csv','co2_gr_gl.csv')]:
+        sh(f'curl -s -o {D}/enso/{f} {u}')
+    wk=[]
+    for line in open(f'{D}/enso/wksst.txt'):
+        m=re.match(r'\s*(\d{2}[A-Z]{3}\d{4})\s+([\d.]+)\s*([-\d.]+)\s+([\d.]+)\s*([-\d.]+)\s+([\d.]+)\s*([-\d.]+)\s+([\d.]+)\s*([-\d.]+)',line)
+        if m:
+            d=dt.datetime.strptime(m.group(1),'%d%b%Y').date()
+            if d.year>=2014: wk.append([d.isoformat(),float(m.group(6)),float(m.group(7))])
+    oni=[[p[0],int(p[1]),float(p[3])] for line in open(f'{D}/enso/oni.txt') for p in [line.split()] if len(p)==4 and p[1].isdigit() and int(p[1])>=2014]
+    gl=[[int(p[0]),int(p[1]),float(p[3]),float(p[5])] for line in open(f'{D}/enso/co2_mm_gl.csv') for p in [line.strip().split(',')] if p[0].isdigit() and int(p[0])>=2014]
+    gr=[[int(p[0]),float(p[1])] for line in open(f'{D}/enso/co2_gr_gl.csv') for p in [line.strip().split(',')] if p[0].isdigit()]
+    phase='El Niño' if oni[-1][2]>=0.5 else 'La Niña' if oni[-1][2]<=-0.5 else 'Neutral'
+    json.dump(dict(weekly=wk,oni=oni,global_co2=gl,growth=gr,latest=dict(week=wk[-1],oni=oni[-1],phase=phase)),open(f'{D}/enso.json','w'))
+def step_fires():
+    pts=[]
+    for u in ('https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv','https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv'):
+        sh(f'curl -s -o {D}/f24.csv {u}')
+        for r in csv.DictReader(open(f'{D}/f24.csv')):
+            if r['confidence']=='low': continue
+            pts.append((float(r['latitude']),float(r['longitude']),float(r['frp']),r['daynight']=='D',r['acq_date']))
+    a=np.empty((len(pts),3),np.int16); a[:,0]=np.round([p[0]*100 for p in pts]); a[:,1]=np.round([p[1]*100 for p in pts]); a[:,2]=np.clip(np.round([p[2] for p in pts]),0,32000)
+    json.dump(dict(n=len(pts),dates=sorted(set(p[4] for p in pts)),b64=base64.b64encode(a.tobytes()).decode(),day=int(sum(p[3] for p in pts))),open(f'{D}/fires.json','w'))
+def step_assemble():
+    print('Assemble: run assemble.py (template placeholders) then apply the interactive page patches; '
+          'in practice the easiest path is to keep index.html as the page and replace only its <script id="d-*"> data blocks '
+          '(gzip+base64 for data-gz="1" blocks). See replace_data_blocks() below.')
+    replace_data_blocks('../index.html')
+def replace_data_blocks(page):
+    t=open(page).read()
+    def gz(obj): return base64.b64encode(gzip.compress(json.dumps(obj,separators=(',',':')).encode(),9)).decode()
+    blocks={'d-st':f'{D}/stations.json','d-oco2':f'{D}/oco2_fwd.json','d-enso':f'{D}/enso.json','d-fires':f'{D}/fires.json','d-pm':f'{D}/pm.json','d-co':f'{D}/co.json','d-firem':f'{D}/firem.json','d-ndvi2':f'{D}/ndvi2.json'}
+    for id_,f in blocks.items():
+        if not os.path.exists(f): print('missing',f); continue
+        t=re.sub(rf'<script id="{id_}" type="application/json" data-gz="1">.*?</script>',lambda m:f'<script id="{id_}" type="application/json" data-gz="1">'+gz(json.load(open(f)))+'</script>',t,flags=re.S)
+    t=re.sub(r'(Snapshot )\d+ \w+ \d{4}',rf'\g<1>{SNAPSHOT}',t)
+    open(page,'w').write(t); print('wrote',page)
+if __name__=='__main__':
+    globals()['step_'+sys.argv[1]]()
