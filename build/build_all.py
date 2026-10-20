@@ -11,7 +11,15 @@ build_aq.py, assemble.py) are kept alongside as references.
 import os, sys, re, io, csv, json, glob, gzip, base64, html, calendar, subprocess, datetime as dt
 import numpy as np
 D='data'; os.makedirs(D,exist_ok=True)
-MONTHS=[(2025,10),(2025,11),(2025,12)]+[(2026,m) for m in range(1,11)]   # <- advance these when refreshing
+def _months(n=13):
+    t=dt.date.today(); out=[]
+    for k in range(n-1,-1,-1):
+        y,m=t.year,t.month-k
+        while m<1: m+=12; y-=1
+        out.append((y,m))
+    return out
+MONTHS=_months()                       # last 13 calendar months ending in the current (partial) month
+os.environ['MONTHS_JSON']=json.dumps(MONTHS)
 SNAPSHOT=dt.date.today().strftime('%-d %b %Y')
 def sh(cmd): subprocess.run(cmd,shell=True,check=True)
 def metrics(pts):
