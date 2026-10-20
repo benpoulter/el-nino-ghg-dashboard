@@ -31,7 +31,7 @@ were written interactively, so expect to adapt paths and a few inline steps.
 9. **AIRS CO + monthly fires** – `bg_fetch.py` (GIBS WMS; AIRS 500 hPa CO monthly, VIIRS thermal anomalies counted per cell).
 10. **ENSO / global CO2** – CPC `wksst9120.for`, `oni.ascii.txt`; NOAA `co2_mm_gl.csv`, `co2_gr_gl.csv` → `enso.json`.
 11. **VIIRS 24 h fires** – FIRMS global CSVs (SUOMI + NOAA-20), packed to int16 → `fires.json`.
-12. **Assemble** – `assemble.py` fills `template.html` placeholders; big JSON blocks are gzipped+base64 and decoded in
+12. **Assemble** – `build_all.py assemble` builds the grid JSONs, then replaces the data and image blocks inside `index.html` in place (the older `reference/assemble.py` + `template.html` route is kept for history); big JSON blocks are gzipped+base64 and decoded in
     the browser (`DecompressionStream`). The published page differs from `template.html` by later interactive edits;
     treat `index.html` in the repo as the authoritative page and `page_patch_example.py` as an example of how it was patched.
 
@@ -43,3 +43,6 @@ with the four secrets above, and commit the regenerated `index.html`. A skeleton
 `refresh.yml` caches `build/data`, `build/geoscf`, `build/airs`, `build/firesm` and `build/ndvi_hi` between runs
 (key = year-month), so weekly runs only fetch what is new. `dryrun.yml` runs `STEPS="enso fires grids assemble"` in ~2 minutes
 to validate the assembly after script changes, without committing anything.
+
+## Layout
+`build_all.py` + `run_all.sh` are the pipeline. `ndvi_hi.py`, `bg_fetch.py`, `geoscf_fetch2.py`, `s3ndvi.py` are called by it. Everything under `reference/` is kept only as a record of how the first snapshot was made and is not used by the workflow.
