@@ -878,10 +878,10 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
 <div class="slist" id="slist"><div class="ttl">Stations<button id="slistClose">×</button></div><div class="ctl"><select id="slNet"><option value="ghg">ICOS + NOAA (greenhouse gases)</option><option value="ICOS">ICOS</option><option value="NOAA">NOAA</option><option value="OpenAQ">OpenAQ (PM₂.₅)</option><option value="all">All networks</option></select><select id="slSort"><option value="desc">Highest first</option><option value="asc">Lowest first</option><option value="name">By name</option></select><input id="slQ" type="search" placeholder="filter…" style="flex:1;min-width:80px"></div><div class="rows" id="slRows"></div></div>
 <button class="statsBtn" id="statsBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M7 16V9M12 16V4M17 16v-6"/></svg>Summary Statistics</button>
 <div class="stats-p" id="statsP"><div class="ttl">Summary Statistics<button id="statsClose">×</button></div><table id="statsT"></table></div>
-<div class="foot"><span>Spark Climate Solutions</span><a href="#" id="footAbout">Data providers &amp; methods</a><a href="https://sparkclimate.org" target="_blank" rel="noopener">sparkclimate.org</a></div>
+<div class="foot"><span>Spark Climate Solutions</span><a href="#" id="footAbout">Data providers &amp; methods</a><a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">Contact: ben@sparkclimate.org</a><a href="https://sparkclimate.org" target="_blank" rel="noopener">sparkclimate.org</a></div>
 <aside class="box" id="box">
   <div class="ttl" id="boxTtl"><span><i class="grip"></i>Layers</span><button id="boxClose" title="Close">×</button></div>
-  <div class="mbtns"><button id="mAbout">About</button><button id="mStats">Statistics</button><button id="mList">Station list</button><button id="mDl">Download CSV</button></div>
+  <div class="mbtns"><button id="mAbout">About</button><button id="mStats">Statistics</button><button id="mList">Station list</button><button id="mDl">Download CSV</button><button id="mContact">Contact</button></div>
   <div class="enso" id="ensoCard"></div>
   <h2>Stations</h2>
   <div class="opt" data-net="ICOS">
@@ -1056,6 +1056,8 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
    <li>Nothing on this page is computed live. Dates shown next to each layer are the dates of the underlying data, not of your visit.</li>
   </ul>
 
+  <h3>Contact</h3>
+  <p>Questions, corrections or requests for additional data layers: <a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">ben@sparkclimate.org</a> (Ben Poulter, Spark Climate Solutions).</p>
   <h3>Citation</h3>
   <p>ICOS RI (2026), ICOS Atmosphere Level 2 and NRT data, Carbon Portal, <a href="https://data.icos-cp.eu/" target="_blank" rel="noopener">data.icos-cp.eu</a>. Lan, X., et al., NOAA GML Carbon Cycle Cooperative Global Air Sampling Network. OCO-2 Science Team (2025/2026), OCO-2 Level 2 bias-corrected XCO₂ forward-processing (OCO2_L2_Fwd_FP v11.2/v11.3) and retrospective Lite (OCO2_L2_Lite_FP v11.3r) products, NASA GES DISC. MODIS Terra Vegetation Indices, NASA LP DAAC, via NASA GIBS. Copernicus Land Monitoring Service (2026), Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3, European Environment Agency / VITO, via the Copernicus Data Space Ecosystem. NASA FIRMS VIIRS 375 m NRT. Keller, C. A., et al. (2021), Description of the NASA GEOS Composition Forecast modeling system GEOS-CF v1.0, J. Adv. Model. Earth Syst. OpenAQ (2026), openaq.org. Built by Spark Climate Solutions.</p>
 
@@ -1507,6 +1509,7 @@ document.getElementById('mAbout').addEventListener('click',()=>document.getEleme
 document.getElementById('mStats').addEventListener('click',()=>{fillStats();statsP.classList.add('open');statsP.style.display='block';boxEl.classList.remove('open');});
 document.getElementById('mList').addEventListener('click',()=>{renderList();slist.classList.add('open');boxEl.classList.remove('open');});
 document.getElementById('mDl').addEventListener('click',()=>document.getElementById('lDl').click());
+document.getElementById('mContact').addEventListener('click',()=>{location.href='mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard';});
 document.getElementById('statsClose').addEventListener('click',()=>{statsP.style.display='';});
 
 /* ---------- about ---------- */
