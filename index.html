@@ -683,7 +683,7 @@ html,body{height:100%;margin:0}
 body{font-family:'Open Sans',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#cfd3d8;color:var(--text-body);font-size:14px;line-height:1.55;overflow:hidden;display:flex;flex-direction:column}
 *{box-sizing:border-box}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--nav-bg)}
-#map{flex:1 1 auto;min-height:0;width:100%;background:#c3c7cd;margin-top:calc(env(safe-area-inset-top,0px) + 56px)}
+#map{flex:1 1 auto;min-height:0;width:100%;background:#cfd3d8;margin-top:calc(env(safe-area-inset-top,0px) + 56px)}
 .nav{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;height:56px;display:flex;align-items:stretch;gap:0;padding:0;background:var(--nav-bg);border-bottom:1px solid var(--panel-border);box-shadow:0 1px 4px rgba(0,0,0,.12);z-index:1200}
 .sbtn{width:56px;flex:0 0 56px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;border:0}
 .nav .logo{order:9;padding:0 18px 0 14px;border-left:1px solid var(--panel-border);background:#fff}
@@ -1018,6 +1018,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
    <li>The PM₂.₅ anomaly compares two model versions: GEOS-CF v2 (current) against a v1 baseline, because the v2 hindcast only begins in 2023. Differences in emissions inventories, chemistry and aerosol schemes between v1 and v2 can produce systematic offsets that are not real changes in air quality; treat the anomaly as indicative. GEOS-CF is a model with assimilated meteorology but no assimilation of surface PM₂.₅ observations, and 2° cells average over strong sub-grid gradients near cities. PM₂.₅ at RH 35 % is a dry-ish mass and is lower than ambient-humidity values reported by many monitors.</li>
    <li>OpenAQ aggregates what agencies publish; coverage is dense in North America, Europe, India, Japan, Korea and Thailand and sparse across Africa, the Middle East, Central Asia and much of South America. Monitors differ in instrument, siting and QA, and some agencies report provisional values that are later revised or removed.</li>
    <li>Fire detections are a 24-hour snapshot and include cloud-gap and sun-glint artefacts; the VIIRS NRT product is also subject to later reprocessing.</li>
+   <li>The map uses an equirectangular (EPSG:4326, plate carrée) projection so the gridded rasters register exactly; high latitudes appear horizontally stretched relative to a Mercator map. The world always fills the viewer: zooming out stops where the map’s width or height matches the window, and panning stops at ±90° / ±180°.</li>
    <li>Nothing on this page is computed live. Dates shown next to each layer are the dates of the underlying data, not of your visit.</li>
   </ul>
 
@@ -1097,18 +1098,18 @@ document.getElementById('lStats').addEventListener('click',toggleStats);
 document.getElementById('statsClose').addEventListener('click',()=>statsP.classList.remove('open'));
 
 /* ---------- map ---------- */
-const map=L.map('map',{crs:L.CRS.EPSG4326,worldCopyJump:false,minZoom:0,maxZoom:7,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:90,zoomControl:true,attributionControl:true,maxBounds:[[-92,-184],[92,184]],maxBoundsViscosity:1.0});
+const map=L.map('map',{crs:L.CRS.EPSG4326,worldCopyJump:false,minZoom:0,maxZoom:7,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:90,zoomControl:true,attributionControl:true,maxBounds:[[-90,-180],[90,180]],maxBoundsViscosity:1.0});
 map.attributionControl.setPrefix('');
 map.createPane('globe').style.zIndex=250; map.createPane('land').style.zIndex=300; map.createPane('basemap').style.zIndex=350; map.createPane('coast').style.zIndex=360; map.createPane('fires').style.zIndex=420; map.createPane('stations').style.zIndex=450;
-const globe=L.rectangle([[-90,-180],[90,180]],{pane:'globe',color:'#8a8f96',weight:1.2,opacity:.9,fillColor:'#cfd3d8',fillOpacity:1,interactive:false}).addTo(map);
+const globe=L.rectangle([[-90,-180],[90,180]],{pane:'globe',stroke:false,fillColor:'#cfd3d8',fillOpacity:1,interactive:false}).addTo(map);
 const landLayer=L.geoJSON(LAND,{pane:'land',style:()=>({stroke:false,fillColor:'#e4e6e9',fillOpacity:1,interactive:false})}).addTo(map);
 const coastLayer=L.geoJSON(LAND,{pane:'coast',style:()=>({color:'#5f646b',weight:0.7,opacity:.8,fill:false,interactive:false})}).addTo(map);
 const graticule=L.layerGroup().addTo(map);
 for(let lat=-60;lat<=60;lat+=30) graticule.addLayer(L.polyline([[lat,-180],[lat,180]],{pane:'coast',color:'#3b3f45',opacity:.1,weight:1,interactive:false}));
 for(let lon=-180;lon<=180;lon+=30) graticule.addLayer(L.polyline([[-90,lon],[90,lon]],{pane:'coast',color:'#3b3f45',opacity:.1,weight:1,interactive:false}));
-function fit(){const w=innerWidth; map.setMinZoom(0); map.fitBounds([[-90,-180],[90,180]],{paddingTopLeft:[w>800?70:0,w>800?40:60],paddingBottomRight:[w>800&&!document.getElementById('box').classList.contains('hidden')?400:(w>800?70:0),w>800?40:20]}); map.setMinZoom(map.getZoom());}
+function fit(){map.setMinZoom(0);const z=map.getBoundsZoom([[-90,-180],[90,180]],true);map.setMinZoom(z);map.setView([12,10],z,{animate:false});}
 fit();
-map.on('resize',()=>{const z=map.getZoom(),mz=map.getMinZoom();map.setMinZoom(0);const fz=map.getBoundsZoom([[-90,-180],[90,180]],false,L.point(innerWidth>800?470:0,80));map.setMinZoom(fz);if(z<fz)map.setZoom(fz);});
+map.on('resize',()=>{const z=map.getZoom();map.setMinZoom(0);const fz=map.getBoundsZoom([[-90,-180],[90,180]],true);map.setMinZoom(fz);if(z<fz)map.setZoom(fz);});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{});
 
 /* ---------- country borders and names ---------- */
