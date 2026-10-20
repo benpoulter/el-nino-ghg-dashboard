@@ -1,5 +1,5 @@
 name: Refresh dashboard data
-o
+on:
   schedule: [{cron: '0 6 * * 1'}]   # Mondays 06:00 UTC
   workflow_dispatch:
 jobs:
@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq gdal-bin libgdal-dev
       - run: pip install numpy pillow netCDF4 rasterio boto3 requests icoscp_core
       - run: bash build/run_all.sh
       - run: |
