@@ -15,6 +15,16 @@ jobs:
       AWS_VIRTUAL_HOSTING: "FALSE"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/data
+            build/geoscf
+            build/airs
+            build/firesm
+            build/ndvi_hi
+          key: dashboard-data-${{ github.run_id }}
+          restore-keys: dashboard-data-
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq gdal-bin libgdal-dev
