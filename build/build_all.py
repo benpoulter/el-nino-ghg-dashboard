@@ -229,14 +229,16 @@ def step_fires():
 def _b16(a): return base64.b64encode(np.where(np.isnan(a),-32768,np.clip(np.round(a*10),-32000,32000)).astype(np.int16).tobytes()).decode()
 def step_grids():
     # GEOS-CF PM2.5: v2m_/v2h_ (current) and v1_ (baseline) npy from geoscf_fetch2.py in geoscf/
-    base={m:np.nanmean(np.stack([np.load(f'geoscf/v1_{y}-{m:02d}.npy') for y in range(2021,2026) if os.path.exists(f'geoscf/v1_{y}-{m:02d}.npy')]),axis=0) for m in range(1,13)}
+    def _stack(fs): return np.nanmean(np.stack([np.load(f) for f in fs]),axis=0) if fs else None
+    base={m:_stack([f'geoscf/v1_{y}-{m:02d}.npy' for y in range(2021,2026) if os.path.exists(f'geoscf/v1_{y}-{m:02d}.npy')]) for m in range(1,13)}
     out=[]
     for y,m in MONTHS:
         f=next((f for f in (f'geoscf/v2m_{y}-{m:02d}.npy',f'geoscf/v2h_{y}-{m:02d}.npy') if os.path.exists(f)),None)
-        if not f: continue
+        if not f or base[m] is None: continue
         a=np.load(f)[::-1]; an=a-base[m][::-1]
         out.append(dict(date=f'{y}-{m:02d}',src='v2',partial=(y,m)==MONTHS[-1],mean=float(np.nanmean(a)),manom=float(np.nanmean(an)),abs=_b16(a),anom=_b16(an)))
-    json.dump(dict(ny=91,nx=180,months=out),open(f'{D}/pm.json','w')); print('pm',len(out))
+    if out: json.dump(dict(ny=91,nx=180,months=out),open(f'{D}/pm.json','w'))
+    print('pm',len(out))
     # AIRS CO (airs/a_*.npy, 360x720) -> 1.5 deg
     def co_m(y,m):
         f=f'airs/a_{y}-{m:02d}.npy'
@@ -247,7 +249,8 @@ def step_grids():
         if cur is None or len(bl)<3: continue
         an=cur-np.nanmean(np.stack(bl),axis=0)
         co.append(dict(date=f'{y}-{m:02d}',partial=(y,m)>=MONTHS[-2],mean=float(np.nanmean(cur)),manom=float(np.nanmean(an)),nbase=len(bl),abs=base64.b64encode(np.where(np.isnan(cur),0,np.clip(np.round(cur),1,255)).astype(np.uint8).tobytes()).decode(),anom=base64.b64encode(np.where(np.isnan(an),-128,np.clip(np.round(an),-127,127)).astype(np.int8).tobytes()).decode()))
-    json.dump(dict(ny=120,nx=240,months=co),open(f'{D}/co.json','w')); print('co',len(co))
+    if co: json.dump(dict(ny=120,nx=240,months=co),open(f'{D}/co.json','w'))
+    print('co',len(co))
     # monthly fires (firesm/g_YYYY-MM-DD.npy, 180x360 counts) -> 2 deg, scaled to full month
     def fm(y,m):
         fs=sorted(glob.glob(f'firesm/g_{y}-{m:02d}-*.npy'))
@@ -260,7 +263,8 @@ def step_grids():
         if cur is None or len(bl)<3: continue
         an=cur-np.mean(bl,axis=0); enc=lambda a: base64.b64encode(np.clip(np.round(a),-32000,32000).astype(np.int16).tobytes()).decode()
         fo.append(dict(date=f'{y}-{m:02d}',partial=(y,m)==MONTHS[-1],total=int(cur.sum()),manom=float(an.mean()),abs=enc(cur),anom=enc(an)))
-    json.dump(dict(ny=90,nx=180,months=fo),open(f'{D}/firem.json','w')); print('firem',len(fo))
+    if fo: json.dump(dict(ny=90,nx=180,months=fo),open(f'{D}/firem.json','w'))
+    print('firem',len(fo))
 def replace_image_blocks(page):
     """Swap the MODIS (ndvi_hi/) and Sentinel-3 (data/s3ndvi/) anomaly images and their meta into the page."""
     from PIL import Image
