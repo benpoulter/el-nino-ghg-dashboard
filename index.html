@@ -1003,8 +1003,11 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
  <div class="mbox">
   <button class="x" id="aboutClose">Close</button>
 <h2 id="aboutTitle">About the <strong>El Niño GHG Dashboard</strong></h2>
-  <p>A Spark Climate Solutions tool for watching how the carbon cycle responds to El Niño conditions: surface CO₂ at long-running monitoring stations, satellite column CO₂, vegetation greenness anomalies and active fires on one map. All data on this page are embedded as a snapshot taken on 18 October 2026 (OCO-2 forward-processing data through 15 October 2026); the page does not update itself.</p>
+  <p>A Spark Climate Solutions tool for watching how the carbon cycle responds to El Niño conditions: surface CO₂ at long-running monitoring stations, satellite column CO₂, vegetation greenness anomalies and active fires on one map. All data on this page are embedded at build time rather than fetched live; the table below gives each layer’s latest date, and the page is rebuilt periodically from the scripts in its GitHub repository.</p>
 
+  <h3>Data as of</h3>
+  <p>Computed from the embedded data when this page loads, so it stays accurate after automated refreshes.</p>
+  <table id="asofT"></table>
   <h3>Data sources</h3>
   <table><tr><th>Layer</th><th>Dataset</th><th>Coverage in this snapshot</th></tr>
   <tr><td>ICOS stations (circles)</td><td><a href="https://data.icos-cp.eu/portal/" target="_blank" rel="noopener">ICOS Carbon Portal</a>: ICOS ATC CO₂ and CH₄ Release (Level 2, quality-controlled) plus ICOS ATC NRT CO₂ / CH₄ growing time series (near-real-time). Licence CC BY 4.0.</td><td>41 atmospheric stations, 2015 – October 2026 (October is a partial month).</td></tr>
@@ -1514,6 +1517,24 @@ document.getElementById('mDl').addEventListener('click',()=>document.getElementB
 document.getElementById('mContact').addEventListener('click',()=>{location.href='mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard';});
 document.getElementById('statsClose').addEventListener('click',()=>{statsP.style.display='';});
 
+/* ---------- data-as-of table ---------- */
+function fillAsOf(){const ym=(y,m)=>`${MON[m-1]} ${y}`;const latest=net=>{let b=null;for(const s of NETS[net])for(const k in s.vars){const [y,m]=s.vars[k].latest;if(!b||y>b[0]||(y===b[0]&&m>b[1]))b=[y,m];}return b;};
+  const cnt=(net,y,m)=>NETS[net].filter(s=>Object.values(s.vars).some(d=>d.latest[0]===y&&d.latest[1]===m)).length;
+  const rows=[];const i=latest('ICOS'),n=latest('NOAA'),a=latest('OpenAQ');
+  rows.push(['ICOS stations (CO₂, CH₄)',ym(...i),`${cnt('ICOS',...i)} of ${NETS.ICOS.length} sites report that month`]);
+  rows.push(['NOAA GGRN flasks (CO₂, CH₄)',ym(...n),`${cnt('NOAA',...n)} of ${NETS.NOAA.length} sites; Mauna Loa extended with preliminary data`]);
+  rows.push(['OpenAQ PM₂.₅ monitors',ym(...a),`${cnt('OpenAQ',...a)} of ${NETS.OpenAQ.length} sites`]);
+  const oc=OCO.cycles[OCO.cycles.length-1];rows.push(['OCO-2 XCO₂',fmtD(oc.end),`16-day window from ${fmtD(oc.start)}, ${oc.src.map(s=>SRC[s]||s).join(' + ')}`]);
+  const nd=NDVI[NDVI.length-1];rows.push(['MODIS NDVI anomaly',ym(+nd.date.slice(0,4),+nd.date.slice(5,7)),'monthly composite']);
+  const s3=S3N[S3N.length-1];rows.push(['Sentinel-3 NDVI anomaly',fmtD(s3.date),'start of the latest 10-day period']);
+  const pm=PM.months[PM.months.length-1];rows.push(['GEOS-CF PM₂.₅',ym(+pm.date.slice(0,4),+pm.date.slice(5,7)),pm.partial?'partial month':'']);
+  const co=CO.months[CO.months.length-1];rows.push(['AIRS CO',ym(+co.date.slice(0,4),+co.date.slice(5,7)),co.partial?'partial month':'']);
+  const fm=FIREM.months[FIREM.months.length-1];rows.push(['Fire activity (monthly)',ym(+fm.date.slice(0,4),+fm.date.slice(5,7)),fm.partial?'partial month':'']);
+  rows.push(['VIIRS active fires (24 h)',fmtD(FIRES.dates[FIRES.dates.length-1]),`${FIRES.n.toLocaleString()} detections`]);
+  rows.push(['Niño 3.4 weekly / ONI',fmtD(ENSO.latest.week[0]),`ONI ${ENSO.latest.oni[0]} ${ENSO.latest.oni[1]}`]);
+  const gl=ENSO.global_co2[ENSO.global_co2.length-1];rows.push(['NOAA global CO₂ (growth rate)',ym(gl[0],gl[1]),'marine surface mean']);
+  document.getElementById('asofT').innerHTML='<tr><th>Layer</th><th>Latest data</th><th>Note</th></tr>'+rows.map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td><td>${r[2]}</td></tr>`).join('');}
+fillAsOf();
 /* ---------- about ---------- */
 const about=document.getElementById('about');
 document.getElementById('aboutOpen').addEventListener('click',()=>about.classList.add('open'));
