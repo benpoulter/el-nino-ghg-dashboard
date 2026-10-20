@@ -25,11 +25,11 @@ def colorize(a,lim=0.2):
 jobs=[(yy,m,2880,1440) for y,m in months for yy in range(y-5,y+1)]+[(yy,months[-1][1],7200,3600) for yy in range(months[-1][0]-5,months[-1][0]+1)]
 with ThreadPoolExecutor(6) as ex: list(ex.map(lambda j:get(*j),jobs))
 print('downloaded',flush=True)
-meta=[]
+meta=[]; g2=[]
+os.makedirs('data',exist_ok=True)
 for y,m in months:
     hi=(y,m)==months[-1]; w,h=(7200,3600) if hi else (2880,1440)
     out=f"ndvi_hi/anom_{y}-{m:02d}.png"
-    if os.path.exists(out): meta.append(dict(date=f"{y}-{m:02d}",file=os.path.basename(out))); continue
     cur=dec(get(y,m,w,h)); S=np.zeros_like(cur); N=np.zeros_like(cur)
     for yy in range(y-5,y):
         f=get(yy,m,w,h)
@@ -38,5 +38,8 @@ for y,m in months:
     an=cur-np.where(N>0,S/np.maximum(N,1),np.nan); an[N<1]=np.nan
     img=Image.fromarray(colorize(an),'RGBA').quantize(colors=128,method=Image.Quantize.FASTOCTREE); img.save(out,optimize=True)
     meta.append(dict(date=f"{y}-{m:02d}",baseline=f"{y-5}–{y-1} ({int(N.max())} yrs)",mean=float(np.nanmean(an)),file=os.path.basename(out),res=0.05 if hi else 0.125))
+    fy=an.shape[0]//90; fx=an.shape[1]//180; a2=np.nanmean(an[:90*fy,:180*fx].reshape(90,fy,180,fx),axis=(1,3))
+    g2.append(dict(date=f"{y}-{m:02d}",b64=__import__('base64').b64encode(np.where(np.isnan(a2),-128,np.clip(np.round(a2*200),-127,127)).astype(np.int8).tobytes()).decode()))
     print(y,m,os.path.getsize(out),flush=True)
 json.dump(meta,open('ndvi_hi/meta.json','w'))
+json.dump(dict(ny=90,nx=180,scale=200,months=g2),open('data/ndvi2.json','w'))
