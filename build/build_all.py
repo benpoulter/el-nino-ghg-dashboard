@@ -162,11 +162,13 @@ def step_stations():
 # ---------------- OCO-2 Fwd_FP / Lite 16-day windows ----------------
 def step_oco2():
     import netCDF4 as nc
-    TOK=os.environ['EARTHDATA_TOKEN']; B='https://oco2.gesdisc.eosdis.nasa.gov/data/OCO2_DATA/'
+    TOK=os.environ.get('EARTHDATA_TOKEN','').strip()
+    if len(TOK)<200: raise SystemExit('EARTHDATA_TOKEN missing or truncated (%d chars); set the repository secret'%len(TOK))
+    B='https://oco2.gesdisc.eosdis.nasa.gov/data/OCO2_DATA/'
     def listing(prod,year):
         out=subprocess.run(f'curl -s {B}{prod}/{year}/',shell=True,capture_output=True,text=True).stdout
         return {m[11:17]:m for m in set(re.findall(r'oco2_(?:Fw|Lt)CO2_\d{6}_B[0-9A-Za-z]+_[0-9s]+\.nc4',out))}
-    yrs=sorted(set(y for y,m in MONTHS)); files={}
+    yrs=sorted(set(y for y,m in MONTHS)|{MONTHS[0][0]-1}); files={}
     for prod in ('OCO2_L2_Fwd_FP.11.3','OCO2_L2_Fwd_FP.11.2','OCO2_L2_Lite_FP.11.3r'):
         for y in yrs:
             for k,f in listing(prod,y).items(): files.setdefault(k,(prod,f))
@@ -182,6 +184,11 @@ def step_oco2():
             if k not in files: continue
             prod,fn=files[k]; path=f'{D}/oco2dl/{fn}'
             sh(f'curl -s -L -H "Authorization: Bearer {TOK}" -o {path} {B}{prod}/{d.year}/{fn}')
+            head=open(path,'rb').read(8)
+            if not head.startswith(b'\x89HDF'):
+                msg=open(path,'rb').read(300).decode('utf-8','ignore')
+                if '401' in msg or 'Unauthorized' in msg or 'urs.earthdata' in msg: raise SystemExit('GES DISC rejected the Earthdata token (401). Regenerate it at urs.earthdata.nasa.gov and update the EARTHDATA_TOKEN secret.')
+                os.remove(path); print('not a NetCDF file, skipped',fn); continue
             try:
                 ds=nc.Dataset(path); x=np.array(ds.variables['xco2'][:],float); q=np.array(ds.variables['xco2_quality_flag'][:]); la=np.array(ds.variables['latitude'][:]); lo=np.array(ds.variables['longitude'][:]); ds.close()
             except Exception: os.remove(path); continue
@@ -192,6 +199,8 @@ def step_oco2():
         g=np.where(N>0,S/np.maximum(N,1),np.nan)
         rec=dict(end=str(e),start=str(e-dt.timedelta(days=15)),days=ok,n=n,cells=int((N>0).sum()),mean=float(np.nanmean(g)),src=sorted(srcs),b64=base64.b64encode(np.where(np.isnan(g),-32768,np.round(g*10)).astype(np.int16).tobytes()).decode())
         json.dump(rec,open(cp,'w')); out.append(rec); print(e,ok,n,flush=True)
+    print('windows built',len(out),'of',len(ends),'; daily files found',len(files))
+    if not out: raise SystemExit('OCO-2: no windows built')
     json.dump(dict(res=0.25,ny=NY,nx=NX,cycles=out),open(f'{D}/oco2_fwd.json','w'))
 
 # ---------------- remaining steps delegate to the reference scripts ----------------
@@ -312,7 +321,9 @@ def replace_data_blocks(page):
     blocks={'d-st':f'{D}/stations.json','d-oco2':f'{D}/oco2_fwd.json','d-enso':f'{D}/enso.json','d-fires':f'{D}/fires.json','d-pm':f'{D}/pm.json','d-co':f'{D}/co.json','d-firem':f'{D}/firem.json','d-ndvi2':f'{D}/ndvi2.json'}
     for id_,f in blocks.items():
         if not os.path.exists(f): print('missing',f); continue
-        t=re.sub(rf'<script id="{id_}" type="application/json" data-gz="1">.*?</script>',lambda m:f'<script id="{id_}" type="application/json" data-gz="1">'+gz(json.load(open(f)))+'</script>',t,flags=re.S)
+        obj=json.load(open(f)); main=obj.get('cycles') or obj.get('months') or (obj if isinstance(obj,list) else obj)
+        if isinstance(main,(list,dict)) and len(main)==0: print('empty, skipped',f); continue
+        t=re.sub(rf'<script id="{id_}" type="application/json" data-gz="1">.*?</script>',lambda m:f'<script id="{id_}" type="application/json" data-gz="1">'+gz(obj)+'</script>',t,flags=re.S)
     t=re.sub(r'(Snapshot )\d+ \w+ \d{4}',rf'\g<1>{SNAPSHOT}',t)
     open(page,'w').write(t); print('wrote',page)
 if __name__=='__main__':
