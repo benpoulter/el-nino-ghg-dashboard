@@ -303,18 +303,19 @@ def replace_image_blocks(page):
         t=re.sub(rf'<script id="{did}" type="application/json">.*?</script>',lambda mm:f'<script id="{did}" type="application/json">'+json.dumps(keep)+'</script>\n'+'\n'.join(blocks),t,flags=re.S)
     open(page,'w').write(t)
 
+PAGE='../dashboard-single.html' if os.path.exists('../dashboard-single.html') else '../index.html'
 def step_assemble():
     print('Assemble: run assemble.py (template placeholders) then apply the interactive page patches; '
           'in practice the easiest path is to keep index.html as the page and replace only its <script id="d-*"> data blocks '
           '(gzip+base64 for data-gz="1" blocks). See replace_data_blocks() below.')
     step_grids()
-    replace_data_blocks('../index.html')
-    replace_image_blocks('../index.html')
+    replace_data_blocks(PAGE)
+    replace_image_blocks(PAGE)
     # keep the page under the 16 MB artifact limit by lowering the hi-res NDVI WebP quality if needed
     for q in (62,52,42):
-        if os.path.getsize('../index.html')<15.9e6: break
-        _requality_hires('../index.html',q)
-    print('index.html %.2f MB'%(os.path.getsize('../index.html')/1e6))
+        if os.path.getsize(PAGE)<15.9e6: break
+        _requality_hires(PAGE,q)
+    print('%s %.2f MB'%(PAGE,os.path.getsize(PAGE)/1e6))
 def replace_data_blocks(page):
     t=open(page).read()
     def gz(obj): return base64.b64encode(gzip.compress(json.dumps(obj,separators=(',',':')).encode(),9)).decode()
@@ -326,5 +327,13 @@ def replace_data_blocks(page):
         t=re.sub(rf'<script id="{id_}" type="application/json" data-gz="1">.*?</script>',lambda m:f'<script id="{id_}" type="application/json" data-gz="1">'+gz(obj)+'</script>',t,flags=re.S)
     t=re.sub(r'(Snapshot )\d+ \w+ \d{4}',rf'\g<1>{SNAPSHOT}',t)
     open(page,'w').write(t); print('wrote',page)
+def step_test():
+    sh(f'{sys.executable} test_page.py {PAGE}')
+def step_split():
+    # GitHub Pages copy: shell + data/.  The single-file page is kept as ../dashboard-single.html for the claude.ai artifact.
+    if PAGE!='../dashboard-single.html':
+        import shutil; shutil.copy('../index.html','../dashboard-single.html')
+    sh(f'{sys.executable} split_page.py ../dashboard-single.html ..')
+    sh(f'{sys.executable} test_page.py http://localhost:8765/index.html') if os.environ.get('TEST_SPLIT') else None
 if __name__=='__main__':
     globals()['step_'+sys.argv[1]]()

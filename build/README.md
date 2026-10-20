@@ -46,3 +46,8 @@ to validate the assembly after script changes, without committing anything.
 
 ## Layout
 `build_all.py` + `run_all.sh` are the pipeline. `ndvi_hi.py`, `bg_fetch.py`, `geoscf_fetch2.py`, `s3ndvi.py` are called by it. Everything under `reference/` is kept only as a record of how the first snapshot was made and is not used by the workflow.
+
+## Page layout on GitHub Pages
+`dashboard-single.html` is the self-contained page (what the claude.ai artifact uses). `index.html` is a 0.3 MB shell
+that loads the same data from `data/` (made by `split_page.py`). `test_page.py` smoke-tests the page in headless
+Chromium before the workflow commits; the `refresh.yml.example` pip line installs Playwright for it.
