@@ -213,11 +213,71 @@ def step_fires():
             pts.append((float(r['latitude']),float(r['longitude']),float(r['frp']),r['daynight']=='D',r['acq_date']))
     a=np.empty((len(pts),3),np.int16); a[:,0]=np.round([p[0]*100 for p in pts]); a[:,1]=np.round([p[1]*100 for p in pts]); a[:,2]=np.clip(np.round([p[2] for p in pts]),0,32000)
     json.dump(dict(n=len(pts),dates=sorted(set(p[4] for p in pts)),b64=base64.b64encode(a.tobytes()).decode(),day=int(sum(p[3] for p in pts))),open(f'{D}/fires.json','w'))
+
+# ---------------- grid JSONs from the npy outputs of the reference scripts ----------------
+def _b16(a): return base64.b64encode(np.where(np.isnan(a),-32768,np.clip(np.round(a*10),-32000,32000)).astype(np.int16).tobytes()).decode()
+def step_grids():
+    # GEOS-CF PM2.5: v2m_/v2h_ (current) and v1_ (baseline) npy from geoscf_fetch2.py in geoscf/
+    base={m:np.nanmean(np.stack([np.load(f'geoscf/v1_{y}-{m:02d}.npy') for y in range(2021,2026) if os.path.exists(f'geoscf/v1_{y}-{m:02d}.npy')]),axis=0) for m in range(1,13)}
+    out=[]
+    for y,m in MONTHS:
+        f=next((f for f in (f'geoscf/v2m_{y}-{m:02d}.npy',f'geoscf/v2h_{y}-{m:02d}.npy') if os.path.exists(f)),None)
+        if not f: continue
+        a=np.load(f)[::-1]; an=a-base[m][::-1]
+        out.append(dict(date=f'{y}-{m:02d}',src='v2',partial=(y,m)==MONTHS[-1],mean=float(np.nanmean(a)),manom=float(np.nanmean(an)),abs=_b16(a),anom=_b16(an)))
+    json.dump(dict(ny=91,nx=180,months=out),open(f'{D}/pm.json','w')); print('pm',len(out))
+    # AIRS CO (airs/a_*.npy, 360x720) -> 1.5 deg
+    def co_m(y,m):
+        f=f'airs/a_{y}-{m:02d}.npy'
+        return np.nanmean(np.load(f).reshape(120,3,240,3),axis=(1,3)) if os.path.exists(f) else None
+    co=[]
+    for y,m in MONTHS:
+        cur=co_m(y,m); bl=[b for b in (co_m(yy,m) for yy in range(y-5,y)) if b is not None]
+        if cur is None or len(bl)<3: continue
+        an=cur-np.nanmean(np.stack(bl),axis=0)
+        co.append(dict(date=f'{y}-{m:02d}',partial=(y,m)>=MONTHS[-2],mean=float(np.nanmean(cur)),manom=float(np.nanmean(an)),nbase=len(bl),abs=base64.b64encode(np.where(np.isnan(cur),0,np.clip(np.round(cur),1,255)).astype(np.uint8).tobytes()).decode(),anom=base64.b64encode(np.where(np.isnan(an),-128,np.clip(np.round(an),-127,127)).astype(np.int8).tobytes()).decode()))
+    json.dump(dict(ny=120,nx=240,months=co),open(f'{D}/co.json','w')); print('co',len(co))
+    # monthly fires (firesm/g_YYYY-MM-DD.npy, 180x360 counts) -> 2 deg, scaled to full month
+    def fm(y,m):
+        fs=sorted(glob.glob(f'firesm/g_{y}-{m:02d}-*.npy'))
+        if not fs: return None
+        nd=calendar.monthrange(y,m)[1]; g=sum(np.load(f) for f in fs).astype(float)*(nd/len(fs))
+        return g.reshape(90,2,180,2).sum(axis=(1,3))
+    fo=[]
+    for y,m in MONTHS:
+        cur=fm(y,m); bl=[b for b in (fm(yy,m) for yy in range(y-5,y)) if b is not None]
+        if cur is None or len(bl)<3: continue
+        an=cur-np.mean(bl,axis=0); enc=lambda a: base64.b64encode(np.clip(np.round(a),-32000,32000).astype(np.int16).tobytes()).decode()
+        fo.append(dict(date=f'{y}-{m:02d}',partial=(y,m)==MONTHS[-1],total=int(cur.sum()),manom=float(an.mean()),abs=enc(cur),anom=enc(an)))
+    json.dump(dict(ny=90,nx=180,months=fo),open(f'{D}/firem.json','w')); print('firem',len(fo))
+def replace_image_blocks(page):
+    """Swap the MODIS (ndvi_hi/) and Sentinel-3 (data/s3ndvi/) anomaly images and their meta into the page."""
+    from PIL import Image
+    t=open(page).read()
+    def b64img(path,webp):
+        if webp:
+            w=path.replace('.png','.webp')
+            if not os.path.exists(w): Image.open(path).convert('RGBA').save(w,'WEBP',quality=75,method=4)
+            return 'data:image/webp;base64,'+base64.b64encode(open(w,'rb').read()).decode()
+        return 'data:image/png;base64,'+base64.b64encode(open(path,'rb').read()).decode()
+    for meta_file,folder,sid,did,webp in (('ndvi_hi/meta.json','ndvi_hi','ndvi-img','d-ndvi',True),(f'{D}/s3ndvi/meta.json',f'{D}/s3ndvi','s3-img','d-s3',False)):
+        if not os.path.exists(meta_file): print('missing',meta_file); continue
+        meta=json.load(open(meta_file)); keep=[]
+        t=re.sub(rf'<script id="{sid}-\d+" type="text/plain">.*?</script>\n?','',t,flags=re.S)
+        blocks=[]
+        for i,m in enumerate(meta):
+            blocks.append(f'<script id="{sid}-{i}" type="text/plain">{b64img(os.path.join(folder,m["file"]),webp)}</script>')
+            keep.append({k:v for k,v in m.items() if k!='file'})
+        t=re.sub(rf'<script id="{did}" type="application/json">.*?</script>',lambda mm:f'<script id="{did}" type="application/json">'+json.dumps(keep)+'</script>\n'+'\n'.join(blocks),t,flags=re.S)
+    open(page,'w').write(t)
+
 def step_assemble():
     print('Assemble: run assemble.py (template placeholders) then apply the interactive page patches; '
           'in practice the easiest path is to keep index.html as the page and replace only its <script id="d-*"> data blocks '
           '(gzip+base64 for data-gz="1" blocks). See replace_data_blocks() below.')
+    step_grids()
     replace_data_blocks('../index.html')
+    replace_image_blocks('../index.html')
 def replace_data_blocks(page):
     t=open(page).read()
     def gz(obj): return base64.b64encode(gzip.compress(json.dumps(obj,separators=(',',':')).encode(),9)).decode()

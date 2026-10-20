@@ -4,5 +4,5 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 export GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-eodata.dataspace.copernicus.eu} AWS_VIRTUAL_HOSTING=FALSE AWS_HTTPS=YES
-STEPS=${STEPS:-noaa icos openaq oco2 modis s3ndvi geoscf gibs enso fires assemble}
+STEPS=${STEPS:-noaa icos openaq stations oco2 modis s3ndvi geoscf gibs enso fires assemble}
 for s in $STEPS; do echo "=== $s ==="; python3 build_all.py "$s"; done
