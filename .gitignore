@@ -1,0 +1,8 @@
+build/data/
+build/__pycache__/
+build/geoscf/
+build/airs/*.npy
+build/airs/*.png
+build/firesm/
+build/ndvi_hi/
+build/oco2dl/

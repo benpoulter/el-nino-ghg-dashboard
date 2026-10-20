@@ -265,6 +265,14 @@ def step_grids():
         fo.append(dict(date=f'{y}-{m:02d}',partial=(y,m)==MONTHS[-1],total=int(cur.sum()),manom=float(an.mean()),abs=enc(cur),anom=enc(an)))
     if fo: json.dump(dict(ny=90,nx=180,months=fo),open(f'{D}/firem.json','w'))
     print('firem',len(fo))
+def _requality_hires(page,q):
+    from PIL import Image
+    meta_file='ndvi_hi/meta.json'
+    if not os.path.exists(meta_file): return
+    meta=json.load(open(meta_file)); i=len(meta)-1; src=os.path.join('ndvi_hi',meta[i]['file'])
+    w=src.replace('.png',f'_q{q}.webp'); Image.open(src).convert('RGBA').save(w,'WEBP',quality=q,method=6)
+    b='data:image/webp;base64,'+base64.b64encode(open(w,'rb').read()).decode()
+    t=open(page).read(); t=re.sub(rf'<script id="ndvi-img-{i}" type="text/plain">.*?</script>',lambda m:f'<script id="ndvi-img-{i}" type="text/plain">{b}</script>',t,flags=re.S); open(page,'w').write(t); print('requality',q)
 def replace_image_blocks(page):
     """Swap the MODIS (ndvi_hi/) and Sentinel-3 (data/s3ndvi/) anomaly images and their meta into the page."""
     from PIL import Image
@@ -293,6 +301,11 @@ def step_assemble():
     step_grids()
     replace_data_blocks('../index.html')
     replace_image_blocks('../index.html')
+    # keep the page under the 16 MB artifact limit by lowering the hi-res NDVI WebP quality if needed
+    for q in (62,52,42):
+        if os.path.getsize('../index.html')<15.9e6: break
+        _requality_hires('../index.html',q)
+    print('index.html %.2f MB'%(os.path.getsize('../index.html')/1e6))
 def replace_data_blocks(page):
     t=open(page).read()
     def gz(obj): return base64.b64encode(gzip.compress(json.dumps(obj,separators=(',',':')).encode(),9)).decode()
