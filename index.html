@@ -1117,7 +1117,7 @@ document.querySelectorAll('.opt .hd').forEach(h=>h.addEventListener('click',e=>{
   o.classList.toggle('open');
 }));
 document.getElementById('panelBtn').addEventListener('click',()=>document.getElementById('box').classList.toggle('open'));
-const boxEl=document.getElementById('box');
+const boxEl=document.getElementById('box');let boxWasOpen=false;
 (function(){const ttl=document.getElementById('boxTtl');let drag=null;
   function place(x,y){const W=innerWidth,H=innerHeight,bw=boxEl.offsetWidth,bh=boxEl.offsetHeight;x=Math.max(0,Math.min(W-bw,x));y=Math.max(56,Math.min(H-60,y));boxEl.style.left=x+'px';boxEl.style.top=y+'px';boxEl.style.right='auto';}
   ttl.addEventListener('pointerdown',e=>{if(e.target.closest('button')||innerWidth<=800)return;const r=boxEl.getBoundingClientRect();drag={dx:e.clientX-r.left,dy:e.clientY-r.top};boxEl.classList.add('dragging');ttl.setPointerCapture(e.pointerId);e.preventDefault();});
@@ -1145,10 +1145,10 @@ function fillStats(){const rows=[];rows.push(['ENSO phase (ONI '+ENSO.latest.oni
   rows.push(['Sentinel-3 NDVI anomaly, land mean, '+S3N[S3N.length-1].date,(S3N[S3N.length-1].mean>0?'+':'')+S3N[S3N.length-1].mean.toFixed(3)]);
   rows.push(['VIIRS fire detections, last 24 h',FIRES.n.toLocaleString()]);
   document.getElementById('statsT').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');}
-function toggleStats(){fillStats();const o=statsP.classList.toggle('open');if(o)boxEl.classList.add('hidden');}
+function toggleStats(){fillStats();const o=statsP.classList.toggle('open');if(o){boxWasOpen=!boxEl.classList.contains('hidden');boxEl.classList.add('hidden');slist.classList.remove('open');}else if(innerWidth>800&&boxWasOpen)boxEl.classList.remove('hidden');}
 document.getElementById('statsBtn').addEventListener('click',toggleStats);
 document.getElementById('lStats').addEventListener('click',toggleStats);
-document.getElementById('statsClose').addEventListener('click',()=>statsP.classList.remove('open'));
+document.getElementById('statsClose').addEventListener('click',()=>{statsP.classList.remove('open');if(innerWidth>800&&boxWasOpen)boxEl.classList.remove('hidden');});
 
 /* ---------- map ---------- */
 const map=L.map('map',{crs:L.CRS.EPSG4326,worldCopyJump:false,minZoom:0,maxZoom:7,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:90,zoomControl:true,attributionControl:true,maxBounds:[[-90,-180],[90,180]],maxBoundsViscosity:1.0});
@@ -1434,12 +1434,12 @@ function showRegion(b){const el=document.getElementById('chart');el.classList.ad
 
 /* ---------- permalink ---------- */
 let hashBusy=false;
-updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
+updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
 map.on('moveend',updateHash);
 map.on('move zoom resize',()=>{if(regionBoxEl&&regionRect){const a=map.latLngToContainerPoint(regionRect.getNorthWest()),b2=map.latLngToContainerPoint(regionRect.getSouthEast());regionBoxEl.style.left=Math.min(a.x,b2.x)+'px';regionBoxEl.style.top=Math.min(a.y,b2.y)+'px';regionBoxEl.style.width=Math.abs(a.x-b2.x)+'px';regionBoxEl.style.height=Math.abs(a.y-b2.y)+'px';}});
 function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;const q={};h.split('&').forEach(kv=>{const [k,v]=kv.split('=');q[k]=decodeURIComponent(v||'');});
   if(q.b&&document.querySelector(`input[name=base][value=${q.b}]`)){baseMode=q.b;document.querySelector(`input[name=base][value=${q.b}]`).checked=true;}
-  if(q.pm)pmMode=q.pm;if(q.co)coMode=q.co;if(q.fm)fmMode=q.fm;
+  if(q.pm)pmMode=q.pm;if(q.co)coMode=q.co;if(q.fm)fmMode=q.fm;if(q.oc){ocoMode=q.oc;document.querySelectorAll('#ocoMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.oc));}
   if(q.i!=null&&SL[baseMode]){const el=document.getElementById(SL[baseMode].el);el.value=Math.min(+el.max,Math.max(0,+q.i));syncDates(baseMode);}
   if(q.m&&document.querySelector(`#anomMode button[data-m=${q.m}]`)){anomMode=q.m;document.querySelectorAll('#anomMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.m));}
   if(q.g){const [a,b]=q.g.split(',');if(VARS[a]){sel.ICOS=a;}if(VARS[b]){sel.NOAA=b;}document.querySelectorAll('input[name=varICOS]').forEach(r=>r.checked=r.value===sel.ICOS);document.querySelectorAll('input[name=varNOAA]').forEach(r=>r.checked=r.value===sel.NOAA);}
@@ -1489,8 +1489,8 @@ function renderList(){const net=document.getElementById('slNet').value,sort=docu
   slist.querySelector('.ttl').firstChild.textContent=`Stations · ${lab} (${rows.length})`;}
 ['slNet','slSort','slQ'].forEach(id=>document.getElementById(id).addEventListener('input',renderList));
 document.getElementById('slRows').addEventListener('click',e=>{const r=e.target.closest('.r');if(!r)return;const s=NETS[r.dataset.net].find(x=>String(x.id)===r.dataset.id);if(!s)return;map.setView([s.lat,s.lon],Math.max(map.getZoom(),4),{animate:true});setTimeout(()=>showChart(s),350);});
-function toggleList(){renderList();const o=slist.classList.toggle('open');if(o){boxEl.classList.add('hidden');boxEl.classList.remove('open');statsP.classList.remove('open');}}
-document.getElementById('lList').addEventListener('click',toggleList);document.getElementById('slistClose').addEventListener('click',()=>slist.classList.remove('open'));
+function toggleList(){renderList();const o=slist.classList.toggle('open');if(o){boxWasOpen=!boxEl.classList.contains('hidden');boxEl.classList.add('hidden');boxEl.classList.remove('open');statsP.classList.remove('open');}else if(innerWidth>800&&boxWasOpen)boxEl.classList.remove('hidden');}
+document.getElementById('lList').addEventListener('click',toggleList);document.getElementById('slistClose').addEventListener('click',()=>{slist.classList.remove('open');if(innerWidth>800&&boxWasOpen)boxEl.classList.remove('hidden');});
 
 /* ---------- mobile quick buttons ---------- */
 document.getElementById('mAbout').addEventListener('click',()=>document.getElementById('about').classList.add('open'));
