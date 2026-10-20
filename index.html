@@ -934,7 +934,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
     </div>
   </div>
   <div class="opt" data-net="OpenAQ">
-    <div class="hd"><input type="checkbox" class="netCk" data-net="OpenAQ" checked><svg class="sym" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" rx="1.5" fill="#2c85d7" stroke="#fff" stroke-width="1.2"/></svg><span class="lbl">OpenAQ monitors<small id="nAq"></small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="hd"><input type="checkbox" class="netCk" data-net="OpenAQ"><svg class="sym" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" rx="1.5" fill="#2c85d7" stroke="#fff" stroke-width="1.2"/></svg><span class="lbl">OpenAQ monitors<small id="nAq"></small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
     <div class="body">
       <div class="sub" id="varsOpenAQ"></div>
       <p class="note">Reference-grade monitors, monthly mean of daily means, one site per 0.75° cell.</p>
@@ -951,7 +951,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
 
   <h2>Fires</h2>
   <div class="opt">
-    <div class="hd"><input type="checkbox" id="ckFire" checked><svg class="sym" viewBox="0 0 14 14"><circle cx="7" cy="7" r="3" fill="#eb4141"/><circle cx="7" cy="7" r="5.5" fill="none" stroke="#e8930b" stroke-width="1.2"/></svg><span class="lbl">VIIRS 375 m active fires<small>24 h</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="hd"><input type="checkbox" id="ckFire"><svg class="sym" viewBox="0 0 14 14"><circle cx="7" cy="7" r="3" fill="#eb4141"/><circle cx="7" cy="7" r="5.5" fill="none" stroke="#e8930b" stroke-width="1.2"/></svg><span class="lbl">VIIRS 375 m active fires<small>24 h</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
     <div class="body">
       <div class="slider"><input type="range" id="frpSl" min="0" max="100" value="0"><div class="lab"><span>Min FRP</span><b id="frpLab">0 MW</b></div></div>
       <p class="note" id="fireNote"></p>
@@ -1246,12 +1246,13 @@ const FireLayer=L.Layer.extend({
       const p=m.latLngToContainerPoint([la,lo]);const hot=frp>=50;ctx.fillStyle=hot?'rgba(230,140,0,.95)':(z<2?'rgba(215,40,40,.6)':'rgba(215,40,40,.85)');ctx.beginPath();ctx.arc(p.x,p.y,hot?r+.8:r,0,6.283);ctx.fill();shown++;}
     document.getElementById('fireNote').textContent=`${FIRES.n.toLocaleString()} nominal/high-confidence detections, Suomi-NPP + NOAA-20, 24 h ending ${fmtD(FIRES.dates[FIRES.dates.length-1])} (${shown.toLocaleString()} in view). Amber = FRP ≥ 50 MW. Source: NASA FIRMS VIIRS 375 m NRT.`;}
 });
-const fireLayer=new FireLayer().addTo(map);
+document.getElementById('fireNote').textContent=`${FIRES.n.toLocaleString()} nominal/high-confidence detections, Suomi-NPP + NOAA-20, 24 h ending ${fmtD(FIRES.dates[FIRES.dates.length-1])}. Amber = FRP ≥ 50 MW. Source: NASA FIRMS VIIRS 375 m NRT.`;
+const fireLayer=new FireLayer();
 const frpSl=document.getElementById('frpSl');frpSl.addEventListener('input',()=>{minFRP=+frpSl.value;document.getElementById('frpLab').textContent=minFRP+' MW';if(map.hasLayer(fireLayer))fireLayer._draw();});
 document.getElementById('ckFire').addEventListener('change',e=>{e.target.checked?fireLayer.addTo(map):map.removeLayer(fireLayer);});
 
 /* ---------- stations ---------- */
-const groups={ICOS:L.layerGroup().addTo(map),NOAA:L.layerGroup().addTo(map),OpenAQ:L.layerGroup().addTo(map)};
+const groups={ICOS:L.layerGroup().addTo(map),NOAA:L.layerGroup().addTo(map),OpenAQ:L.layerGroup()};
 const counts={ICOS:'nIcos',NOAA:'nNoaa',OpenAQ:'nAq'};
 const tri=f=>L.divIcon({className:'',html:`<svg width="18" height="18" viewBox="0 0 18 18" style="overflow:visible"><path d="M9 1.5 17 16H1Z" fill="${f}" stroke="#142161" stroke-width="1.2"/></svg>`,iconSize:[18,18],iconAnchor:[9,9]});
 const sq=f=>L.divIcon({className:'',html:`<svg width="9" height="9" viewBox="0 0 9 9" style="overflow:visible"><rect x="0.5" y="0.5" width="8" height="8" rx="1.2" fill="${f}" stroke="rgba(20,33,97,.55)" stroke-width="1"/></svg>`,iconSize:[9,9],iconAnchor:[4.5,4.5]});
@@ -1392,7 +1393,7 @@ function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;co
   if(q.m&&document.querySelector(`#anomMode button[data-m=${q.m}]`)){anomMode=q.m;document.querySelectorAll('#anomMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.m));}
   if(q.g){const [a,b]=q.g.split(',');if(VARS[a]){sel.ICOS=a;}if(VARS[b]){sel.NOAA=b;}document.querySelectorAll('input[name=varICOS]').forEach(r=>r.checked=r.value===sel.ICOS);document.querySelectorAll('input[name=varNOAA]').forEach(r=>r.checked=r.value===sel.NOAA);}
   if(q.s){['ICOS','NOAA','OpenAQ'].forEach((n,i)=>{const ck=document.querySelector(`.netCk[data-net=${n}]`);const on=q.s[i]!=='0';if(ck.checked!==on){ck.checked=on;on?groups[n].addTo(map):map.removeLayer(groups[n]);}});}
-  if(q.f==='0'){document.getElementById('ckFire').checked=false;map.removeLayer(fireLayer);}
+  if(q.f==='0'){document.getElementById('ckFire').checked=false;if(map.hasLayer(fireLayer))map.removeLayer(fireLayer);}else if(q.f==='1'){document.getElementById('ckFire').checked=true;if(!map.hasLayer(fireLayer))fireLayer.addTo(map);}
   for(const net in NETS)buildNet(net);updateLegend();
   ['pm','co','fm'].forEach(k=>{const id={pm:'pmMode',co:'coMode',fm:'fmMode'}[k];const mode={pm:pmMode,co:coMode,fm:fmMode}[k];document.querySelectorAll(`#${id} button`).forEach(x=>x.classList.toggle('on',x.dataset.m===mode));});
   showBase();
