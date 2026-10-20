@@ -170,9 +170,12 @@ def step_oco2():
     for prod in ('OCO2_L2_Fwd_FP.11.3','OCO2_L2_Fwd_FP.11.2','OCO2_L2_Lite_FP.11.3r'):
         for y in yrs:
             for k,f in listing(prod,y).items(): files.setdefault(k,(prod,f))
-    ends=[dt.date(y,m,15) for y,m in MONTHS]; NY,NX=180,360; out=[]
+    ends=[dt.date(y,m,15) for y,m in MONTHS]; NY,NX=720,1440; out=[]
     os.makedirs(f'{D}/oco2dl',exist_ok=True)
+    os.makedirs(f'{D}/oco2grid',exist_ok=True)
     for e in ends:
+        cp=f'{D}/oco2grid/{e}.json'
+        if os.path.exists(cp) and e<dt.date.today()-dt.timedelta(days=3): out.append(json.load(open(cp))); print(e,'cached'); continue
         S=np.zeros((NY,NX)); N=np.zeros((NY,NX)); n=0; ok=0; srcs=set()
         for i in range(16):
             d=e-dt.timedelta(days=i); k=d.strftime('%y%m%d')
@@ -183,13 +186,13 @@ def step_oco2():
                 ds=nc.Dataset(path); x=np.array(ds.variables['xco2'][:],float); q=np.array(ds.variables['xco2_quality_flag'][:]); la=np.array(ds.variables['latitude'][:]); lo=np.array(ds.variables['longitude'][:]); ds.close()
             except Exception: os.remove(path); continue
             g=(q==0)&np.isfinite(x)&(x>350)&(x<500); x,la,lo=x[g],la[g],lo[g]
-            iy=np.clip(((90-la)).astype(int),0,NY-1); ix=np.clip(((lo+180)).astype(int),0,NX-1)
+            iy=np.clip(((90-la)*4).astype(int),0,NY-1); ix=np.clip(((lo+180)*4).astype(int),0,NX-1)
             np.add.at(S,(iy,ix),x); np.add.at(N,(iy,ix),1); n+=len(x); ok+=1; srcs.add(prod); os.remove(path)
         if ok==0: continue
         g=np.where(N>0,S/np.maximum(N,1),np.nan)
-        out.append(dict(end=str(e),start=str(e-dt.timedelta(days=15)),days=ok,n=n,cells=int((N>0).sum()),mean=float(np.nanmean(g)),src=sorted(srcs),b64=base64.b64encode(np.where(np.isnan(g),-32768,np.round(g*10)).astype(np.int16).tobytes()).decode()))
-        print(e,ok,n,flush=True)
-    json.dump(dict(res=1,ny=NY,nx=NX,cycles=out),open(f'{D}/oco2_fwd.json','w'))
+        rec=dict(end=str(e),start=str(e-dt.timedelta(days=15)),days=ok,n=n,cells=int((N>0).sum()),mean=float(np.nanmean(g)),src=sorted(srcs),b64=base64.b64encode(np.where(np.isnan(g),-32768,np.round(g*10)).astype(np.int16).tobytes()).decode())
+        json.dump(rec,open(cp,'w')); out.append(rec); print(e,ok,n,flush=True)
+    json.dump(dict(res=0.25,ny=NY,nx=NX,cycles=out),open(f'{D}/oco2_fwd.json','w'))
 
 # ---------------- remaining steps delegate to the reference scripts ----------------
 def step_modis():  sh('python3 ndvi_hi.py')          # writes ndvi_hi/anom_*.png + meta.json

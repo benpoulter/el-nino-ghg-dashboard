@@ -1,0 +1,24 @@
+name: Dry run (assembly only)
+on:
+  workflow_dispatch:
+jobs:
+  dry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/data
+            build/geoscf
+            build/airs
+            build/firesm
+            build/ndvi_hi
+          key: dashboard-data-dry-${{ github.run_id }}
+          restore-keys: dashboard-data-
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install numpy pillow requests
+      - run: STEPS="enso fires grids assemble" bash build/run_all.sh
+      - run: ls -la index.html && git diff --stat

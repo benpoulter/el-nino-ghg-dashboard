@@ -38,3 +38,8 @@ were written interactively, so expect to adapt paths and a few inline steps.
 ## Automating with GitHub Actions
 A workflow could run steps 1–12 weekly on `ubuntu-latest` (≈60–90 min, dominated by OpenAQ and OCO-2 downloads),
 with the four secrets above, and commit the regenerated `index.html`. A skeleton is in `.github/workflows/refresh.yml`.
+
+## Caching and dry runs
+`refresh.yml` caches `build/data`, `build/geoscf`, `build/airs`, `build/firesm` and `build/ndvi_hi` between runs
+(key = year-month), so weekly runs only fetch what is new. `dryrun.yml` runs `STEPS="enso fires grids assemble"` in ~2 minutes
+to validate the assembly after script changes, without committing anything.
