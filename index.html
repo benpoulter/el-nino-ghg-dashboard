@@ -882,69 +882,6 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   <div class="ttl" id="boxTtl"><span><i class="grip"></i>Layers</span><button id="boxClose" title="Close">×</button></div>
   <div class="mbtns"><button id="mAbout">About</button><button id="mStats">Statistics</button><button id="mList">Station list</button><button id="mDl">Download CSV</button></div>
   <div class="enso" id="ensoCard"></div>
-  <h2>Basemap</h2>
-  <div class="opt" data-base="oco2">
-    <div class="hd"><input type="radio" name="base" value="oco2"><span class="lbl">OCO-2 XCO₂<small>16-day windows</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
-    <div class="body">
-      <div class="slider"><input type="range" id="ocoSl" min="0" max="0" value="0"><div class="lab"><span>Window</span><b id="ocoDate"></b></div></div>
-      <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)"></div><div class="lab2"><span>≤ 418 ppm</span><span>426</span><span>≥ 434 ppm</span></div></div>
-      <p class="note" id="ocoNote"></p>
-    </div>
-  </div>
-  <div class="opt" data-base="ndvi">
-    <div class="hd"><input type="radio" name="base" value="ndvi" checked><span class="lbl">MODIS NDVI anomaly<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
-    <div class="body">
-      <div class="slider"><input type="range" id="ndviSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="ndviDate"></b></div></div>
-      <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#8c510a,#f5f5f5,#01663c)"></div><div class="lab2"><span>−0.2 browner</span><span>0</span><span>+0.2 greener</span></div></div>
-      <p class="note" id="ndviNote"></p>
-    </div>
-  </div>
-  <div class="opt" data-base="s3">
-    <div class="hd"><input type="radio" name="base" value="s3"><span class="lbl">Sentinel-3 NDVI anomaly<small>10-day</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
-    <div class="body">
-      <div class="slider"><input type="range" id="s3Sl" min="0" max="0" value="0"><div class="lab"><span>Period</span><b id="s3Date"></b></div></div>
-      <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#8c510a,#f5f5f5,#01663c)"></div><div class="lab2"><span>−0.2 browner</span><span>0</span><span>+0.2 greener</span></div></div>
-      <p class="note" id="s3Note"></p>
-    </div>
-  </div>
-  <div class="opt" data-base="pm">
-    <div class="hd"><input type="radio" name="base" value="pm"><span class="lbl">PM₂.₅ model<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
-    <div class="body">
-      <div class="seg" id="pmMode"><button data-m="abs" class="on">Concentration</button><button data-m="anom">Anomaly</button></div>
-      <div class="slider"><input type="range" id="pmSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="pmDate"></b></div></div>
-      <div class="legend"><div class="bar" id="pmBar"></div><div class="lab2" id="pmLab"></div></div>
-      <p class="note" id="pmNote"></p>
-    </div>
-  </div>
-  <div class="opt" data-base="co">
-    <div class="hd"><input type="radio" name="base" value="co"><span class="lbl">AIRS CO (500 hPa)<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
-    <div class="body">
-      <div class="seg" id="coMode"><button data-m="abs" class="on">Concentration</button><button data-m="anom">Anomaly</button></div>
-      <div class="slider"><input type="range" id="coSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="coDate"></b></div></div>
-      <div class="legend"><div class="bar" id="coBar"></div><div class="lab2" id="coLab"></div></div>
-      <p class="note" id="coNote"></p>
-    </div>
-  </div>
-  <div class="opt" data-base="firem">
-    <div class="hd"><input type="radio" name="base" value="firem"><span class="lbl">Fire activity<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
-    <div class="body">
-      <div class="seg" id="fmMode"><button data-m="abs" class="on">Detections</button><button data-m="anom">Anomaly</button></div>
-      <div class="slider"><input type="range" id="fmSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="fmDate"></b></div></div>
-      <div class="legend"><div class="bar" id="fmBar"></div><div class="lab2" id="fmLab"></div></div>
-      <p class="note" id="fmNote"></p>
-    </div>
-  </div>
-  <div class="opt" data-base="none">
-    <div class="hd"><input type="radio" name="base" value="none"><span class="lbl">None</span></div>
-  </div>
-  <div class="opt">
-    <div class="hd"><input type="checkbox" id="ckSync" checked><span class="lbl">Keep dates in sync<small>across basemaps</small></span></div>
-  </div>
-  <div class="opt" id="cmpOpt">
-    <div class="hd"><input type="checkbox" id="ckCmp"><span class="lbl">Compare two dates<small>swipe</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
-    <div class="body"><div class="slider cmp"><input type="range" id="cmpSl" min="0" max="0" value="0"><div class="lab"><span>Right-hand date</span><b id="cmpDate"></b></div></div><p class="note">Drag the divider on the map. Left shows the main slider’s date, right shows this one.</p></div>
-  </div>
-
   <h2>Stations</h2>
   <div class="opt" data-net="ICOS">
     <div class="hd"><input type="checkbox" class="netCk" data-net="ICOS" checked><svg class="sym" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="#2c85d7" stroke="#fff" stroke-width="1.2"/></svg><span class="lbl">ICOS atmosphere<small id="nIcos"></small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
@@ -975,10 +912,60 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
       <p class="note" id="anomNote"></p>
     </div>
   </div>
-
-  <h2>Regions</h2>
-  <div class="opt"><div class="body" style="display:block;padding:6px 16px 10px"><div class="presets" id="presets"></div><p class="note">One-click region comparisons for the classic ENSO teleconnection areas; or draw your own with the dashed-box tool.</p></div></div>
-  <h2>Fires</h2>
+  <h2>Basemap · Vegetation</h2>
+  <div class="opt" data-base="ndvi">
+    <div class="hd"><input type="radio" name="base" value="ndvi" checked><span class="lbl">MODIS NDVI anomaly<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="slider"><input type="range" id="ndviSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="ndviDate"></b></div></div>
+      <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#8c510a,#f5f5f5,#01663c)"></div><div class="lab2"><span>−0.2 browner</span><span>0</span><span>+0.2 greener</span></div></div>
+      <p class="note" id="ndviNote"></p>
+    </div>
+  </div>
+  <div class="opt" data-base="s3">
+    <div class="hd"><input type="radio" name="base" value="s3"><span class="lbl">Sentinel-3 NDVI anomaly<small>10-day</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="slider"><input type="range" id="s3Sl" min="0" max="0" value="0"><div class="lab"><span>Period</span><b id="s3Date"></b></div></div>
+      <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#8c510a,#f5f5f5,#01663c)"></div><div class="lab2"><span>−0.2 browner</span><span>0</span><span>+0.2 greener</span></div></div>
+      <p class="note" id="s3Note"></p>
+    </div>
+  </div>
+  <h2>Basemap · GHG and air quality</h2>
+  <div class="opt" data-base="oco2">
+    <div class="hd"><input type="radio" name="base" value="oco2"><span class="lbl">OCO-2 XCO₂<small>16-day windows</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="slider"><input type="range" id="ocoSl" min="0" max="0" value="0"><div class="lab"><span>Window</span><b id="ocoDate"></b></div></div>
+      <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)"></div><div class="lab2"><span>≤ 418 ppm</span><span>426</span><span>≥ 434 ppm</span></div></div>
+      <p class="note" id="ocoNote"></p>
+    </div>
+  </div>
+  <div class="opt" data-base="pm">
+    <div class="hd"><input type="radio" name="base" value="pm"><span class="lbl">PM₂.₅ model<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="seg" id="pmMode"><button data-m="abs" class="on">Concentration</button><button data-m="anom">Anomaly</button></div>
+      <div class="slider"><input type="range" id="pmSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="pmDate"></b></div></div>
+      <div class="legend"><div class="bar" id="pmBar"></div><div class="lab2" id="pmLab"></div></div>
+      <p class="note" id="pmNote"></p>
+    </div>
+  </div>
+  <div class="opt" data-base="co">
+    <div class="hd"><input type="radio" name="base" value="co"><span class="lbl">AIRS CO (500 hPa)<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="seg" id="coMode"><button data-m="abs" class="on">Concentration</button><button data-m="anom">Anomaly</button></div>
+      <div class="slider"><input type="range" id="coSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="coDate"></b></div></div>
+      <div class="legend"><div class="bar" id="coBar"></div><div class="lab2" id="coLab"></div></div>
+      <p class="note" id="coNote"></p>
+    </div>
+  </div>
+  <h2>Basemap · Fire</h2>
+  <div class="opt" data-base="firem">
+    <div class="hd"><input type="radio" name="base" value="firem"><span class="lbl">Fire activity<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="seg" id="fmMode"><button data-m="abs" class="on">Detections</button><button data-m="anom">Anomaly</button></div>
+      <div class="slider"><input type="range" id="fmSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="fmDate"></b></div></div>
+      <div class="legend"><div class="bar" id="fmBar"></div><div class="lab2" id="fmLab"></div></div>
+      <p class="note" id="fmNote"></p>
+    </div>
+  </div>
   <div class="opt">
     <div class="hd"><input type="checkbox" id="ckFm"><svg class="sym" viewBox="0 0 14 14"><rect x="1.5" y="1.5" width="11" height="11" rx="1" fill="#f4a582" stroke="#b2182b" stroke-width="1.2"/></svg><span class="lbl">Monthly fire anomaly<small>overlay</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
     <div class="body"><div class="slider"><input type="range" id="fmoSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="fmoDate"></b></div></div><div class="legend"><div class="bar" style="background:linear-gradient(90deg,#2166ac,#92c5de,rgba(247,247,247,0),#f4a582,#b2182b)"></div><div class="lab2"><span>−300</span><span>vs 2021–25 same month</span><span>+300 per 2° cell</span></div></div><p class="note">VIIRS detections per 2° cell minus the 2021–2025 mean for that month, drawn over whichever basemap is selected. Ages better than the 24-hour snapshot below.</p></div>
@@ -990,6 +977,19 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
       <p class="note" id="fireNote"></p>
     </div>
   </div>
+  <h2>Basemap options</h2>
+  <div class="opt" data-base="none">
+    <div class="hd"><input type="radio" name="base" value="none"><span class="lbl">None</span></div>
+  </div>
+  <div class="opt">
+    <div class="hd"><input type="checkbox" id="ckSync" checked><span class="lbl">Keep dates in sync<small>across basemaps</small></span></div>
+  </div>
+  <div class="opt" id="cmpOpt">
+    <div class="hd"><input type="checkbox" id="ckCmp"><span class="lbl">Compare two dates<small>swipe</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body"><div class="slider cmp"><input type="range" id="cmpSl" min="0" max="0" value="0"><div class="lab"><span>Right-hand date</span><b id="cmpDate"></b></div></div><p class="note">Drag the divider on the map. Left shows the main slider’s date, right shows this one.</p></div>
+  </div>
+  <h2>Regions</h2>
+  <div class="opt"><div class="body" style="display:block;padding:6px 16px 10px"><div class="presets" id="presets"></div><p class="note">One-click region comparisons for the classic ENSO teleconnection areas; or draw your own with the dashed-box tool.</p></div></div>
   <p class="note" style="margin:10px 16px 4px">Drag this panel by its title bar; double-click the title to snap it back. Keys: <span class="kbd">←</span><span class="kbd">→</span> step the active basemap date, <span class="kbd">+</span><span class="kbd">−</span> zoom, <span class="kbd">R</span> region tool, <span class="kbd">Esc</span> close. The URL updates as you move, so you can copy it to share a view. Click a station for its time series. Data are an embedded snapshot; see each layer’s note and the About panel for dates and caveats.</p>
 </aside>
 
