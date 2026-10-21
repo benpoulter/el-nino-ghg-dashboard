@@ -13,6 +13,7 @@ with sync_playwright() as p:
     pg.on('pageerror',lambda e:errs.append('pageerror: '+str(e))); pg.on('console',lambda m: errs.append('console: '+m.text[:200]) if m.type=='error' else None)
     pg.goto(url); pg.wait_for_function("()=>!document.getElementById('splash')",timeout=60000)
     pg.evaluate("()=>{const b=document.getElementById('box');b.classList.remove('hidden');b.classList.add('open');}")
+    pg.click('#tabs button[data-tab=bases]')
     for v in ['oco2','ndvi','s3','pm','co','firem','none']:
         pg.click(f'input[name=base][value={v}]'); pg.wait_for_timeout(600); pg.click('#map',position={'x':640,'y':430}); pg.wait_for_timeout(200)
     pg.evaluate("()=>{document.querySelectorAll('.leaflet-marker-icon')[3].click()}"); pg.wait_for_timeout(800)

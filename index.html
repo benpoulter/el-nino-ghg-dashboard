@@ -798,6 +798,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 @keyframes spin{to{transform:rotate(360deg)}}
 .foot a{color:var(--text-body);text-decoration:none}
 .box h2{font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-light);margin:12px 16px 4px}
+.tabs{display:flex;border-bottom:1px solid var(--panel-border);background:var(--panel);position:sticky;top:45px;z-index:2}
+.tabs button{flex:1;border:0;border-bottom:3px solid transparent;background:transparent;padding:9px 0 7px;font:inherit;font-size:13px;font-weight:600;color:var(--text-light);cursor:pointer}
+.tabs button.on{color:var(--blue);border-bottom-color:var(--blue)}
 .opt{border-top:1px solid var(--panel-border)}
 .opt:first-of-type{border-top:0}
 .opt .hd{display:flex;align-items:center;gap:10px;padding:8px 14px 8px 16px;cursor:pointer;user-select:none}
@@ -893,7 +896,8 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
 <aside class="box hidden" id="box">
   <div class="ttl" id="boxTtl"><span><i class="grip"></i>Layers</span><button id="boxClose" title="Close">×</button></div>
   <div class="mbtns"><button id="mAbout">About</button><button id="mStats">Statistics</button><button id="mList">Station list</button><button id="mDl">Download CSV</button><button id="mContact">Contact</button></div>
-  <div class="enso" id="ensoCard"></div>
+  <div class="tabs" id="tabs"><button data-tab="sites" class="on">Sites</button><button data-tab="bases">Basemaps</button></div>
+  <div class="tab" id="tab-sites">
   <h2>Stations</h2>
   <div class="opt" data-net="ICOS">
     <div class="hd"><input type="checkbox" class="netCk" data-net="ICOS" checked><svg class="sym" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="#2c85d7" stroke="#fff" stroke-width="1.2"/></svg><span class="lbl">ICOS atmosphere<small id="nIcos"></small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
@@ -932,6 +936,9 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
       <p class="note" id="anomNote"></p>
     </div>
   </div>
+  </div>
+  <div class="tab" id="tab-bases" style="display:none">
+  <div class="enso" id="ensoCard"></div>
   <h2>Basemap · Vegetation</h2>
   <div class="opt" data-base="ndvi">
     <div class="hd"><input type="radio" name="base" value="ndvi" checked><span class="lbl">MODIS NDVI anomaly<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
@@ -1016,6 +1023,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   </div>
   <h2>Regions</h2>
   <div class="opt"><div class="body" style="display:block;padding:6px 16px 10px"><div class="presets" id="presets"></div><p class="note">One-click region comparisons for the classic ENSO teleconnection areas; or draw your own with the dashed-box tool.</p></div></div>
+  </div>
   <p class="note" style="margin:10px 16px 4px"><b style="color:var(--text)">Contact:</b> <a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">ben@sparkclimate.org</a> · <a href="https://sparkclimate.org" target="_blank" rel="noopener">Spark Climate Solutions</a></p>
   <p class="note" style="margin:10px 16px 4px"><span class="deskOnly">Drag this panel by its title bar; double-click the title to snap it back. Keys: <span class="kbd">←</span><span class="kbd">→</span> step the active basemap date, <span class="kbd">+</span><span class="kbd">−</span> zoom, <span class="kbd">R</span> region tool, <span class="kbd">Esc</span> close. </span>The URL updates as you move, so you can copy it to share a view. Click a station for its time series. Data are an embedded snapshot; see each layer’s note and the About panel for dates and caveats.</p>
 </aside>
@@ -1148,7 +1156,11 @@ document.querySelectorAll('.opt .hd').forEach(h=>h.addEventListener('click',e=>{
   o.classList.toggle('open');
 }));
 document.getElementById('panelBtn').addEventListener('click',()=>document.getElementById('box').classList.toggle('open'));
-const boxEl=document.getElementById('box');let boxWasOpen=false;let regionOn,regionRect,regionBoxEl,regionStart;
+const boxEl=document.getElementById('box');let boxWasOpen=false;
+let curTab='sites';
+function setTab(k){curTab=k;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===k));document.getElementById('tab-sites').style.display=k==='sites'?'':'none';document.getElementById('tab-bases').style.display=k==='bases'?'':'none';try{localStorage.setItem('layersTab',k);}catch(_){}if(typeof renderEnso==='function'&&k==='bases')renderEnso();}
+document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+try{const lt=localStorage.getItem('layersTab');if(lt)setTab(lt);}catch(_){}let regionOn,regionRect,regionBoxEl,regionStart;
 (function(){const ttl=document.getElementById('boxTtl');let drag=null;
   function place(x,y){const W=innerWidth,H=innerHeight,bw=boxEl.offsetWidth;x=Math.max(0,Math.min(W-bw,x));y=Math.max(56,Math.min(H-60,y));boxEl.style.left=x+'px';boxEl.style.top=y+'px';boxEl.style.right='auto';}
   ttl.addEventListener('pointerdown',e=>{if(e.target.closest('button')||innerWidth<=800)return;const r=boxEl.getBoundingClientRect();drag={dx:e.clientX-r.left,dy:e.clientY-r.top};boxEl.classList.add('dragging');ttl.setPointerCapture(e.pointerId);e.preventDefault();});
@@ -1462,7 +1474,7 @@ function renderEnso(){const L=ENSO.latest,ph=L.phase;const cls=ph==='El Niño'?'
   spark(document.getElementById('ensoCv'),ENSO.weekly.map(p=>[p[0],p[2]]),{color:'#e8930b',fill:'rgba(232,147,11,.25)',fillZero:0,zero:0,lo:-3,hi:3.5,bands:[[0.5,9,'rgba(235,65,65,.07)'],[-9,-0.5,'rgba(44,133,215,.07)']],marks:ninoPk.map(d=>['El Niño peak',d,'#b2182b'])});
   spark(document.getElementById('grCv'),gr,{color:'#2c85d7',fill:'rgba(44,133,215,.2)',fillZero:1,zero:2.5,lo:1,hi:4.5,marks:peaks.map(d=>['growth peak',d,'#b2182b']).concat(ninoPk.map(d=>['',d.slice(0,7),'#e8930b']))});
   if(gr4.length)spark(document.getElementById('gr4Cv'),gr4,{color:'#1b9e85',fill:'rgba(27,158,133,.2)',fillZero:0,zero:8,lo:0,hi:20,marks:ninoPk.map(d=>['',d.slice(0,7),'#e8930b'])});}
-renderEnso();addEventListener('resize',renderEnso);
+renderEnso();addEventListener('resize',renderEnso);if(curTab==='bases')renderEnso();
 
 /* ---------- region comparison ---------- */
 regionOn=false;regionRect=null;regionBoxEl=null;regionStart=null;
@@ -1491,7 +1503,7 @@ function showRegion(b){const el=document.getElementById('chart');el.classList.ad
 
 /* ---------- permalink ---------- */
 let hashBusy=false;
-updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`x=${['FLUXNET2015','FLUXNET-CH4'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
+updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`t=${curTab}`,`x=${['FLUXNET2015','FLUXNET-CH4'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
 map.on('moveend',updateHash);
 map.on('move zoom resize',()=>{if(regionBoxEl&&regionRect){const a=map.latLngToContainerPoint(regionRect.getNorthWest()),b2=map.latLngToContainerPoint(regionRect.getSouthEast());regionBoxEl.style.left=Math.min(a.x,b2.x)+'px';regionBoxEl.style.top=Math.min(a.y,b2.y)+'px';regionBoxEl.style.width=Math.abs(a.x-b2.x)+'px';regionBoxEl.style.height=Math.abs(a.y-b2.y)+'px';}});
 function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;const q={};h.split('&').forEach(kv=>{const [k,v]=kv.split('=');q[k]=decodeURIComponent(v||'');});
@@ -1501,6 +1513,7 @@ function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;co
   if(q.m&&document.querySelector(`#anomMode button[data-m=${q.m}]`)){anomMode=q.m;document.querySelectorAll('#anomMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.m));}
   if(q.g){const [a,b]=q.g.split(',');if(VARS[a]){sel.ICOS=a;}if(VARS[b]){sel.NOAA=b;}document.querySelectorAll('input[name=varICOS]').forEach(r=>r.checked=r.value===sel.ICOS);document.querySelectorAll('input[name=varNOAA]').forEach(r=>r.checked=r.value===sel.NOAA);}
   if(q.s){['ICOS','NOAA','OpenAQ'].forEach((n,i)=>{const ck=document.querySelector(`.netCk[data-net=${n}]`);const on=q.s[i]!=='0';if(ck.checked!==on){ck.checked=on;on?groups[n].addTo(map):map.removeLayer(groups[n]);}});}
+  if(q.t==='bases'||q.t==='sites')setTab(q.t);
   if(q.x){['FLUXNET2015','FLUXNET-CH4'].forEach((n,i)=>{const ck=document.querySelector(`.fluxCk[data-net="${n}"]`);const on=q.x[i]==='1';if(ck.checked!==on){ck.checked=on;on?fluxGroups[n].addTo(map):map.removeLayer(fluxGroups[n]);}});}
   if(q.f==='0'){document.getElementById('ckFire').checked=false;if(map.hasLayer(fireLayer))map.removeLayer(fireLayer);}else if(q.f==='1'){document.getElementById('ckFire').checked=true;if(!map.hasLayer(fireLayer))fireLayer.addTo(map);}
   for(const net in NETS)buildNet(net);updateLegend();
