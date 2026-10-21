@@ -308,6 +308,8 @@ def replace_image_blocks(page):
     for meta_file,folder,sid,did,webp in (('ndvi_hi/meta.json','ndvi_hi','ndvi-img','d-ndvi',True),(f'{D}/s3ndvi/meta.json',f'{D}/s3ndvi','s3-img','d-s3',False)):
         if not os.path.exists(meta_file): print('missing',meta_file); continue
         meta=json.load(open(meta_file)); keep=[]
+        cur=len(re.findall(rf'<script id="{sid}-\d+"',t))
+        if len(meta)<min(6,cur): print(f'{sid}: only {len(meta)} months built (page has {cur}); keeping existing images'); continue
         t=re.sub(rf'<script id="{sid}-\d+" type="text/plain">.*?</script>\n?','',t,flags=re.S)
         blocks=[]
         for i,m in enumerate(meta):
