@@ -25,9 +25,12 @@ def colorize(a,lim=0.2):
 jobs=[(yy,m,2880,1440) for y,m in months for yy in range(y-5,y+1)]+[(yy,months[-1][1],7200,3600) for yy in range(months[-1][0]-5,months[-1][0]+1)]
 with ThreadPoolExecutor(6) as ex: list(ex.map(lambda j:get(*j),jobs))
 print('downloaded',flush=True)
+import time as _time
+_T0=float(_os.environ.get('BUILD_START',_time.time())); _B=float(_os.environ.get('BUILD_BUDGET_MIN','150'))*60
 meta=[]; g2=[]
 os.makedirs('data',exist_ok=True)
 for y,m in months:
+    if _time.time()-_T0>_B-35*60: print('MODIS: budget reached'); break
     hi=(y,m)==months[-1]; w,h=(7200,3600) if hi else (2880,1440)
     out=f"ndvi_hi/anom_{y}-{m:02d}.png"
     cur=dec(get(y,m,w,h)); S=np.zeros_like(cur); N=np.zeros_like(cur)

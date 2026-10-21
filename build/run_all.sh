@@ -3,6 +3,7 @@
 # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY (CDSE S3).  Runtime ~60-90 min (OpenAQ + OCO-2 dominate).
 set -euo pipefail
 cd "$(dirname "$0")"
+export BUILD_START=${BUILD_START:-$(date +%s)} BUILD_BUDGET_MIN=${BUILD_BUDGET_MIN:-150}
 export GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-eodata.dataspace.copernicus.eu} AWS_VIRTUAL_HOSTING=FALSE AWS_HTTPS=YES
 STEPS=${STEPS:-noaa icos openaq stations oco2 modis s3ndvi geoscf gibs enso fires assemble test split}
 for s in $STEPS; do echo "=== $s ==="; python3 build_all.py "$s"; done

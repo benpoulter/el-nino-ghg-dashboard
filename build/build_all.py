@@ -22,6 +22,11 @@ MONTHS=_months()                       # last 13 calendar months ending in the c
 os.environ['MONTHS_JSON']=json.dumps(MONTHS)
 SNAPSHOT=dt.date.today().strftime('%-d %b %Y')
 def sh(cmd): subprocess.run(cmd,shell=True,check=True)
+import time
+_T0=float(os.environ.get('BUILD_START',time.time())); _BUDGET=float(os.environ.get('BUILD_BUDGET_MIN','150'))*60
+def over_budget(reserve_min=25):
+    """True when less than reserve_min minutes of the run budget remain (leaves time for assemble/test/split)."""
+    return time.time()-_T0 > _BUDGET-reserve_min*60
 def metrics(pts):
     pts=sorted(pts); y,m,v=pts[-1]
     base=[p[2] for p in pts if p[1]==m and y-5<=p[0]<=y-1]; prev=[p[2] for p in pts if p[0]==y-1 and p[1]==m]
@@ -111,6 +116,7 @@ def step_openaq():
     for i,x in enumerate(sel):
         lid=str(x['id'])
         if lid in ser: continue
+        if over_budget(60): print('OpenAQ: budget reached, remaining sites deferred'); break
         sid=[s['id'] for s in x['sensors'] if s['parameter']['id']==2][0]
         for t in range(3):
             r=requests.get(f'https://api.openaq.org/v3/sensors/{sid}/days/monthly',params=dict(limit=100,date_from='2019-01-01'),headers=H)
@@ -178,12 +184,19 @@ def step_oco2():
     for e in ends:
         cp=f'{D}/oco2grid/{e}.json'
         if os.path.exists(cp) and e<dt.date.today()-dt.timedelta(days=3): out.append(json.load(open(cp))); print(e,'cached'); continue
+        if over_budget(): print('OCO-2: budget reached, remaining windows deferred to the next run'); break
         S=np.zeros((NY,NX)); N=np.zeros((NY,NX)); n=0; ok=0; srcs=set()
+        todo=[]
         for i in range(16):
             d=e-dt.timedelta(days=i); k=d.strftime('%y%m%d')
-            if k not in files: continue
-            prod,fn=files[k]; path=f'{D}/oco2dl/{fn}'
-            sh(f'curl -s -L -H "Authorization: Bearer {TOK}" -o {path} {B}{prod}/{d.year}/{fn}')
+            if k in files: todo.append((d,)+files[k])
+        from concurrent.futures import ThreadPoolExecutor
+        def _dl(item):
+            d,prod,fn=item; path=f'{D}/oco2dl/{fn}'
+            subprocess.run(f'curl -s -L -m 600 -H "Authorization: Bearer {TOK}" -o {path} {B}{prod}/{d.year}/{fn}',shell=True); return item,path
+        with ThreadPoolExecutor(6) as ex: dls=list(ex.map(_dl,todo))
+        for (d,prod,fn),path in dls:
+            if not os.path.exists(path): continue
             head=open(path,'rb').read(8)
             if not head.startswith(b'\x89HDF'):
                 msg=open(path,'rb').read(300).decode('utf-8','ignore')

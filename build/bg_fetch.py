@@ -27,9 +27,12 @@ def fire_grid(d):
     except Exception: os.remove(p); return None
     m=a[...,3]>0
     ys,xs=np.nonzero(m); g=np.zeros((180,360),np.int32); np.add.at(g,(ys//8,xs//8),1); os.remove(p); return g
+import time as _time
+_T0=float(_os.environ.get('BUILD_START',_time.time())); _B=float(_os.environ.get('BUILD_BUDGET_MIN','150'))*60
+def _ok(): return _time.time()-_T0<_B-30*60
 def run_fire(j):
     _,d=j; out=f"firesm/g_{d}.npy"
-    if os.path.exists(out): return
+    if os.path.exists(out) or not _ok(): return
     g=fire_grid(d)
     if g is not None: np.save(out,g)
 with ThreadPoolExecutor(8) as ex: list(ex.map(run_fire,jobs))
@@ -49,6 +52,7 @@ L='AIRS_L3_Carbon_Monoxide_500hPa_Volume_Mixing_Ratio_Monthly_Day'; LD='AIRS_L3_
 def airs_month(y,m):
     out=f"airs/a_{y}-{m:02d}.npy"
     if os.path.exists(out): return np.load(out)
+    if not _ok(): return None
     if (y,m) in months[-2:]:
         nd=calendar.monthrange(y,m)[1] if (y,m)!=months[-1] else max(1,_dt.date.today().day-3); vs=[]
         for d in range(1,nd+1,2):
