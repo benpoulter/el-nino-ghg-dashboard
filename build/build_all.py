@@ -235,8 +235,63 @@ def step_enso():
     oni=[[p[0],int(p[1]),float(p[3])] for line in open(f'{D}/enso/oni.txt') for p in [line.split()] if len(p)==4 and p[1].isdigit() and int(p[1])>=2014]
     gl=[[int(p[0]),int(p[1]),float(p[3]),float(p[5])] for line in open(f'{D}/enso/co2_mm_gl.csv') for p in [line.strip().split(',')] if p[0].isdigit() and int(p[0])>=2014]
     gr=[[int(p[0]),float(p[1])] for line in open(f'{D}/enso/co2_gr_gl.csv') for p in [line.strip().split(',')] if p[0].isdigit()]
+    sh(f'curl -s -o {D}/enso/ch4_mm_gl.csv https://gml.noaa.gov/webdata/ccgg/trends/ch4/ch4_mm_gl.csv')
+    gl4=[[int(p[0]),int(p[1]),float(p[3]),float(p[5])] for line in open(f'{D}/enso/ch4_mm_gl.csv') for p in [line.strip().split(',')] if p[0].isdigit() and int(p[0])>=2014]
     phase='El Niño' if oni[-1][2]>=0.5 else 'La Niña' if oni[-1][2]<=-0.5 else 'Neutral'
-    json.dump(dict(weekly=wk,oni=oni,global_co2=gl,growth=gr,latest=dict(week=wk[-1],oni=oni[-1],phase=phase)),open(f'{D}/enso.json','w'))
+    json.dump(dict(weekly=wk,oni=oni,global_co2=gl,global_ch4=gl4,growth=gr,latest=dict(week=wk[-1],oni=oni[-1],phase=phase)),open(f'{D}/enso.json','w'))
+    # CPC ENSO discussion: status + synopsis
+    try:
+        import requests
+        txt=requests.get('https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso_advisory/ensodisc.shtml',timeout=60).text
+        t=html.unescape(re.sub(r'\s+',' ',re.sub('<[^>]+>',' ',txt)))
+        st=re.search(r'ENSO Alert System Status: ([^S]*?) Synopsis: (.*?)(?: \w+ [Cc]onditions| During)',t); iss=re.search(r'issued by CLIMATE PREDICTION CENTER/NCEP[^0-9]*?(\d{1,2} \w+ 20\d\d)',t)
+        if st: json.dump(dict(status=st.group(1).strip(),synopsis=st.group(2).strip()[:400],issued=iss.group(1) if iss else '',url='https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso_advisory/ensodisc.shtml'),open(f'{D}/outlook.json','w'))
+        else: print('CPC outlook: pattern not found; keeping previous')
+    except Exception as e: print('CPC outlook failed',e)
+def step_sst():
+    """GHRSST MUR SST anomaly from GIBS at 0.125 deg: monthly means (every 5th day), WebP images + 1-degree value grid."""
+    from PIL import Image
+    W='https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&CRS=EPSG:4326&BBOX=-90,-180,90,180&FORMAT=image/png&LAYERS=GHRSST_L4_MUR_Sea_Surface_Temperature_Anomalies&WIDTH=2880&HEIGHT=1440'
+    os.makedirs('sst_hi',exist_ok=True); os.makedirs(f'{D}/sst',exist_ok=True)
+    if not os.path.exists('sst_hi/cmap.xml'): sh('curl -s -o sst_hi/cmap.xml https://gibs.earthdata.nasa.gov/colormaps/v1.3/GHRSST_Sea_Surface_Temperature_Anomalies.xml')
+    ents=re.findall(r'<ColorMapEntry rgb="(\d+),(\d+),(\d+)"[^>]*value="\[([-+A-Za-z\d.e]+),([-+A-Za-z\d.e]+)[\)\]]"',open('sst_hi/cmap.xml').read())
+    lk={}
+    for r,g,b,lo,hi in ents:
+        lo=float(lo.replace('INF','1e9')); hi=float(hi.replace('INF','1e9'))
+        if lo<-1e8: lo=hi-0.1
+        if hi>1e8: hi=lo+0.1
+        lk[int(r)*65536+int(g)*256+int(b)]=(lo+hi)/2
+    from concurrent.futures import ThreadPoolExecutor
+    today=dt.date.today(); days=[]
+    for y,m in MONTHS:
+        nd=calendar.monthrange(y,m)[1] if (y,m)!=MONTHS[-1] else max(3,today.day-1)
+        days+=[dt.date(y,m,d) for d in range(3,nd+1,5)]
+    def get(d):
+        f=f'sst_hi/s_{d}.png'
+        if not os.path.exists(f) or os.path.getsize(f)<5000: subprocess.run(['curl','-s','-L','-m','300','--retry','2','-A','Mozilla/5.0 (dashboard-build)','-o',f,f'{W}&TIME={d}'])
+        return f if os.path.exists(f) and os.path.getsize(f)>5000 else None
+    with ThreadPoolExecutor(8) as ex: list(ex.map(get,days))
+    def dec(f):
+        im=np.array(Image.open(f).convert('RGBA')); c=im[...,:3].reshape(-1,3).astype(np.int32); keys=c[:,0]*65536+c[:,1]*256+c[:,2]
+        u,inv=np.unique(keys,return_inverse=True); v=np.array([lk.get(int(x),np.nan) for x in u],dtype=np.float32)[inv].reshape(im.shape[:2]); v[im[...,3]<128]=np.nan; return v
+    def colorize(a):
+        stops=np.array([[33,102,172],[146,197,222],[247,247,247],[244,165,130],[178,24,43]],float)
+        nan=np.isnan(a); t=np.clip((np.nan_to_num(a)+3)/6,0,1)*4; i=np.clip(np.floor(t),0,3).astype(int); f=(t-i)[...,None]
+        rgb=stops[i]*(1-f)+stops[np.minimum(i+1,4)]*f; al=np.where(nan,0,225).astype(np.uint8); return np.dstack([rgb.astype(np.uint8),al])
+    out=[]
+    for y,m in MONTHS:
+        vs=[]
+        for d in [d for d in days if (d.year,d.month)==(y,m)]:
+            f=get(d)
+            if f:
+                try: vs.append(dec(f))
+                except Exception: pass
+        if not vs: print('SST: no images for',y,m); continue
+        a=np.nanmean(np.stack(vs),axis=0); a1=np.nanmean(a.reshape(180,8,360,8),axis=(1,3)); n34=float(np.nanmean(a1[85:95,10:60]))
+        fn=f'{D}/sst/anom_{y}-{m:02d}.webp'; Image.fromarray(colorize(a),'RGBA').resize((1440,720),Image.BILINEAR).save(fn,'WEBP',quality=72,method=6)
+        out.append(dict(date=f'{y}-{m:02d}',partial=(y,m)==MONTHS[-1],ndays=len(vs),mean=float(np.nanmean(a1)),nino34=n34,b64=base64.b64encode(np.where(np.isnan(a1),-128,np.clip(np.round(np.nan_to_num(a1,nan=-99)*20),-127,127)).astype(np.int8).tobytes()).decode(),file=os.path.basename(fn)))
+        print('SST',y,m,len(vs),round(n34,2),flush=True)
+    json.dump(dict(ny=180,nx=360,scale=20,months=out),open(f'{D}/sst.json','w'))
 def step_fires():
     pts=[]
     for u in ('https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv','https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv'):
@@ -305,7 +360,15 @@ def replace_image_blocks(page):
             if not os.path.exists(w): Image.open(path).convert('RGBA').save(w,'WEBP',quality=75,method=4)
             return 'data:image/webp;base64,'+base64.b64encode(open(w,'rb').read()).decode()
         return 'data:image/png;base64,'+base64.b64encode(open(path,'rb').read()).decode()
-    for meta_file,folder,sid,did,webp in (('ndvi_hi/meta.json','ndvi_hi','ndvi-img','d-ndvi',True),(f'{D}/s3ndvi/meta.json',f'{D}/s3ndvi','s3-img','d-s3',False)):
+    sst_meta=None
+    if os.path.exists(f'{D}/sst.json'):
+        sj=json.load(open(f'{D}/sst.json')); sst_meta=f'{D}/sst_imgmeta.json'; json.dump([dict(file=c['file']) for c in sj['months']],open(sst_meta,'w'))
+    for meta_file,folder,sid,did,webp in (('ndvi_hi/meta.json','ndvi_hi','ndvi-img','d-ndvi',True),(f'{D}/s3ndvi/meta.json',f'{D}/s3ndvi','s3-img','d-s3',False),(sst_meta or 'none','{D}/sst','sst-img',None,True)):
+        if did is None:
+            if not meta_file or not os.path.exists(meta_file): continue
+            meta=json.load(open(meta_file)); t=re.sub(rf'<script id="{sid}-\d+" type="text/plain">.*?</script>\n?','',t,flags=re.S)
+            blocks=[f'<script id="{sid}-{i}" type="text/plain">{b64img(os.path.join(f"{D}/sst",m["file"]),True)}</script>' for i,m in enumerate(meta)]
+            t=re.sub(r'(<script id="d-sst" type="application/json" data-gz="1">.*?</script>)',lambda mm:mm.group(1)+'\n'+'\n'.join(blocks),t,flags=re.S); continue
         if not os.path.exists(meta_file): print('missing',meta_file); continue
         meta=json.load(open(meta_file)); keep=[]
         cur=len(re.findall(rf'<script id="{sid}-\d+"',t))
@@ -334,7 +397,11 @@ def step_assemble():
 def replace_data_blocks(page):
     t=open(page).read()
     def gz(obj): return base64.b64encode(gzip.compress(json.dumps(obj,separators=(',',':')).encode(),9)).decode()
-    blocks={'d-st':f'{D}/stations.json','d-oco2':f'{D}/oco2_fwd.json','d-enso':f'{D}/enso.json','d-fires':f'{D}/fires.json','d-pm':f'{D}/pm.json','d-co':f'{D}/co.json','d-firem':f'{D}/firem.json','d-ndvi2':f'{D}/ndvi2.json'}
+    blocks={'d-st':f'{D}/stations.json','d-oco2':f'{D}/oco2_fwd.json','d-enso':f'{D}/enso.json','d-fires':f'{D}/fires.json','d-pm':f'{D}/pm.json','d-co':f'{D}/co.json','d-firem':f'{D}/firem.json','d-ndvi2':f'{D}/ndvi2.json','d-sst':f'{D}/sst_nofile.json'}
+    if os.path.exists(f'{D}/sst.json'):
+        sj=json.load(open(f'{D}/sst.json')); [c.pop('file',None) for c in sj['months']]; json.dump(sj,open(f'{D}/sst_nofile.json','w'))
+    if os.path.exists(f'{D}/outlook.json'):
+        t=re.sub(r'<script id="d-outlook" type="application/json">.*?</script>',lambda m:'<script id="d-outlook" type="application/json">'+open(f'{D}/outlook.json').read()+'</script>',t,flags=re.S)
     for id_,f in blocks.items():
         if not os.path.exists(f): print('missing',f); continue
         obj=json.load(open(f)); main=obj.get('cycles') or obj.get('months') or (obj if isinstance(obj,list) else obj)
