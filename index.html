@@ -779,6 +779,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .slist .r small{color:var(--text-light)}
 .slist .r .val{font-weight:700;text-align:right;white-space:nowrap}
 .slist .sw{width:12px;height:12px;border-radius:2px;border:1px solid rgba(0,0,0,.3)}
+.leaflet-cluster-anim .leaflet-marker-icon,.leaflet-cluster-anim .leaflet-marker-shadow{transition:transform .3s ease-out,opacity .3s ease-in}
+.leaflet-cluster-spider-leg{transition:stroke-dashoffset .3s ease-out,stroke-opacity .3s ease-in}
+.fxc{display:flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font:700 11px/1 'Open Sans',sans-serif;border:2px solid rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.fxc.fx{background:rgba(27,158,133,.85)}.fxc.ch{background:rgba(123,58,183,.85)}
+.fxp{font-size:12px;line-height:1.5}.fxp b{color:var(--text)}.fxp .tag{display:inline-block;padding:0 6px;border-radius:3px;font-size:10px;font-weight:700;color:#fff;margin-left:4px}
 .valPop{font-size:12px;line-height:1.5}
 #hover{position:absolute;left:12px;bottom:88px;z-index:1000;background:var(--panel);border:1px solid var(--panel-border);padding:6px 10px;font-size:11.5px;line-height:1.5;color:var(--text-body);pointer-events:none;max-width:320px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
 #hover b{color:var(--text)}
@@ -911,6 +916,14 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
       <p class="note">Reference-grade monitors, monthly mean of daily means, one site per 0.75° cell.</p>
     </div>
   </div>
+  <div class="opt">
+    <div class="hd"><input type="checkbox" class="fluxCk" data-net="FLUXNET2015"><svg class="sym" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="rgba(27,158,133,.85)" stroke="#fff" stroke-width="1.2"/></svg><span class="lbl">FLUXNET2015 towers<small id="nFx"></small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body"><p class="note">Eddy-covariance flux towers in the FLUXNET2015 dataset. Circles aggregate nearby towers and split apart as you zoom; the number is the tower count. Click a tower for its details.</p></div>
+  </div>
+  <div class="opt">
+    <div class="hd"><input type="checkbox" class="fluxCk" data-net="FLUXNET-CH4"><svg class="sym" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" fill="rgba(123,58,183,.85)" stroke="#fff" stroke-width="1.2"/></svg><span class="lbl">FLUXNET-CH4 towers<small id="nCh"></small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body"><p class="note">Methane-flux towers in the FLUXNET-CH4 v1.0 community product (wetlands, rice, lakes, uplands). Same clustering behaviour.</p></div>
+  </div>
   <div class="opt" id="anomOpt">
     <div class="hd"><span class="lbl">Station colour</span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
     <div class="body">
@@ -1040,6 +1053,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   <tr><td>Click-for-value</td><td>Clicking the map reads the active basemap’s grid at that point. Values come from the embedded coarse grids, so the NDVI readout is the 2° MODIS value even when the 0.05° image is displayed.</td><td>—</td></tr>
   <tr><td>SST anomaly basemap</td><td>NASA GIBS layer <em>GHRSST L4 MUR25 Sea Surface Temperature Anomalies</em> (JPL MUR 0.25° analysis minus its 2003–2014 daily climatology), colour-decoded at 0.125°, sampled every fifth day and averaged to monthly means; displayed at 0.125°, with a 1° value grid for readouts.</td><td>Oct 2025 – Oct 2026 (October from three days).</td></tr>
   <tr><td>ENSO outlook</td><td>NOAA CPC ENSO Diagnostic Discussion: alert-system status and the synopsis sentence, scraped from the discussion page at build time (issued monthly on the second Thursday).</td><td>Latest issue date shown in the card.</td></tr>
+  <tr><td>FLUXNET tower layers</td><td><a href="https://fluxnet.org/" target="_blank" rel="noopener">FLUXNET</a> site registry (FLUXNET2015 and FLUXNET-CH4 v1.0 site lists from the AmeriFlux/FLUXNET site API) with PI, tower start/end years, elevation and Köppen class scraped from each site’s FLUXNET page; IGBP vegetation class from the site list. “Active” means the FLUXNET page lists data collection to “Present”. Towers are clustered on the map until zoom level 6.</td><td>212 FLUXNET2015 and 81 FLUXNET-CH4 towers, fetched 21 Oct 2026.</td></tr>
   <tr><td>Coastlines</td><td><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> 1:110m land polygons (public domain).</td><td>—</td></tr></table>
 
   <h3>How the station values are aggregated</h3>
@@ -1090,12 +1104,13 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script>
 (async function(){
 async function J(id){const el=document.getElementById(id);if(!el){const r=await fetch('data/'+id+'.json');if(!r.ok)throw new Error('missing data/'+id+'.json');return r.json();}if(el.dataset.gz!=='1')return JSON.parse(el.textContent);if(!('DecompressionStream' in window)){document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;inset:0;z-index:9999;background:#fff;padding:40px;font-family:sans-serif">This dashboard needs a browser from 2023 or later (Chrome 80+, Safari 16.4+, Firefox 113+).</div>');throw new Error('no DecompressionStream');}const bin=Uint8Array.from(atob(el.textContent),c=>c.charCodeAt(0));const ds=new DecompressionStream('gzip');const w=ds.writable.getWriter();w.write(bin);w.close();const buf=await new Response(ds.readable).arrayBuffer();return JSON.parse(new TextDecoder().decode(buf));}
 const prog=(n,t)=>{const el=document.getElementById('splashBar');if(el)el.style.width=Math.round(100*n/t)+'%';};
-const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2','d-sst','d-outlook'];let done=0;
-const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,SST,OUTLOOK]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
+const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2','d-sst','d-outlook','d-flux'];let done=0;
+const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,SST,OUTLOOK,FLUX]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
 NDVI.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('ndvi-img-'+i);return el?el.textContent:'data/ndvi-img-'+i+'.webp';}}));
 S3N.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('s3-img-'+i);return el?el.textContent:'data/s3-img-'+i+'.png';}}));
 SST.months.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('sst-img-'+i);return el?el.textContent:'data/sst-img-'+i+'.webp';}}));
@@ -1359,6 +1374,16 @@ buildVarPickers(); for(const net in NETS) buildNet(net); updateLegend();
 document.querySelectorAll('#anomMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#anomMode button').forEach(x=>x.classList.toggle('on',x===b));anomMode=b.dataset.m;for(const net in NETS) buildNet(net);updateLegend();updateHash();if(document.getElementById('slist').classList.contains('open'))renderList();}));
 document.querySelectorAll('.netCk').forEach(ck=>ck.addEventListener('change',()=>{const g=groups[ck.dataset.net];ck.checked?g.addTo(map):map.removeLayer(g);updateLegend();updateHash();}));
 
+/* ---------- FLUXNET tower layers (clustered) ---------- */
+const fluxGroups={};
+function fluxPopup(s,net){const act=s.active===true?'<span class="tag" style="background:#1b9e85">active</span>':s.active===false?'<span class="tag" style="background:#9aa5b8">inactive</span>':'';return `<div class="fxp"><b>${s.name}</b> (${s.id}) ${act}<br>${net} · ${s.country}<br>${s.lat.toFixed(4)}°, ${s.lon.toFixed(4)}°${s.elev?` · ${s.elev} m`:''}<br>PI: <b>${s.pi||'n/a'}</b><br>Established: <b>${s.began||'n/a'}</b>${s.end&&s.end!=='Present'?` · ended ${s.end}`:''}<br>Vegetation: <b>${s.veg}</b> (${s.igbp})${s.climate?` · Köppen ${s.climate}`:''}<br>Data years in ${net}: ${s.years||'n/a'}<br><a href="${s.url}" target="_blank" rel="noopener" style="color:var(--blue)">Site page ↗</a></div>`;}
+for(const net of ['FLUXNET2015','FLUXNET-CH4']){const cls=net==='FLUXNET2015'?'fx':'ch';const col=net==='FLUXNET2015'?'rgba(27,158,133,.9)':'rgba(123,58,183,.9)';
+  const g=L.markerClusterGroup({pane:'stations',maxClusterRadius:36,disableClusteringAtZoom:6,spiderfyOnMaxZoom:true,showCoverageOnHover:false,iconCreateFunction:c=>{const n=c.getChildCount();const sz=n<10?26:n<50?32:38;return L.divIcon({html:`<div class="fxc ${cls}" style="width:${sz}px;height:${sz}px">${n}</div>`,className:'',iconSize:[sz,sz]});}});
+  for(const s of FLUX[net]){const mk=L.circleMarker([s.lat,s.lon],{pane:'stations',radius:6,color:'#fff',weight:1.2,fillColor:col,fillOpacity:.95});mk.bindTooltip(`<b>${s.name}</b> (${s.id}) · ${s.veg}${s.active===true?' · active':s.active===false?' · inactive':''}`,{sticky:true});mk.bindPopup(fluxPopup(s,net),{maxWidth:320});g.addLayer(mk);}
+  fluxGroups[net]=g;}
+document.getElementById('nFx').textContent=FLUX['FLUXNET2015'].length+' sites';document.getElementById('nCh').textContent=FLUX['FLUXNET-CH4'].length+' sites';
+document.querySelectorAll('.fluxCk').forEach(ck=>ck.addEventListener('change',()=>{const g=fluxGroups[ck.dataset.net];ck.checked?g.addTo(map):map.removeLayer(g);updateHash();}));
+
 /* ---------- chart ---------- */
 let chart=null;
 let chartStation=null;
@@ -1395,11 +1420,13 @@ const items=[];
 for(const [n,la,lo,rk] of LABELS) items.push({t:'Country',n,la,lo,z:null,key:n.toLowerCase()});
 for(const [n,la,lo,c] of CITIES) items.push({t:'City',n,la,lo,sub:c,z:5.5,key:(n+' '+c).toLowerCase()});
 for(const net in NETS) for(const s of NETS[net]) items.push({t:net,n:s.name,sub:s.id+(s.country?' · '+s.country:''),la:s.lat,lo:s.lon,z:5.5,key:(s.name+' '+s.id+' '+(s.country||'')).toLowerCase(),st:s});
+for(const net in FLUX) for(const s of FLUX[net]) items.push({t:net,n:s.name,sub:s.id+' · '+s.country,la:s.lat,lo:s.lon,z:7,key:(s.name+' '+s.id+' '+s.country+' '+s.pi).toLowerCase(),fx:net});
 function countryBounds(name){const f=BORDERS.features.find(f=>f.properties.n===name); if(!f) return null; let s=90,n=-90,w=180,e=-180; const walk=c=>{if(typeof c[0]==='number'){if(c[1]<s)s=c[1];if(c[1]>n)n=c[1];if(c[0]<w)w=c[0];if(c[0]>e)e=c[0];}else c.forEach(walk);}; walk(f.geometry.coordinates); if(e-w>300){return [[s,-180],[n,180]];} return [[s,w],[n,e]];}
 const sIn=document.getElementById('searchIn'),sRes=document.getElementById('searchRes'); let hits=[],selIdx=-1;
 function goTo(h){sRes.classList.remove('open');sIn.value=h.n;sIn.blur();
   if(h.t==='Country'){const b=countryBounds(h.n); if(b){map.fitBounds(b,{padding:[40,40],maxZoom:6});return;}}
-  map.setView([h.la,h.lo],h.z||4,{animate:true}); if(h.st) setTimeout(()=>showChart(h.st),350);}
+  map.setView([h.la,h.lo],h.z||4,{animate:true}); if(h.st) setTimeout(()=>showChart(h.st),350);
+  if(h.fx){const ck=document.querySelector(`.fluxCk[data-net="${h.fx}"]`);if(!ck.checked){ck.checked=true;fluxGroups[h.fx].addTo(map);}}}
 function render(){sRes.innerHTML=hits.map((h,i)=>`<div data-i="${i}" class="${i===selIdx?'sel':''}"><span>${h.n}${h.sub?` <small>${h.sub}</small>`:''}</span><small>${h.t}</small></div>`).join('')||(sIn.value.trim().length>=2?'<div style="color:var(--text-light);cursor:default">No matches</div>':'');sRes.classList.toggle('open',sRes.innerHTML.length>0);}
 sIn.addEventListener('input',()=>{const q=sIn.value.trim().toLowerCase();selIdx=-1;
   const m=q.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);
@@ -1464,7 +1491,7 @@ function showRegion(b){const el=document.getElementById('chart');el.classList.ad
 
 /* ---------- permalink ---------- */
 let hashBusy=false;
-updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
+updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`x=${['FLUXNET2015','FLUXNET-CH4'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
 map.on('moveend',updateHash);
 map.on('move zoom resize',()=>{if(regionBoxEl&&regionRect){const a=map.latLngToContainerPoint(regionRect.getNorthWest()),b2=map.latLngToContainerPoint(regionRect.getSouthEast());regionBoxEl.style.left=Math.min(a.x,b2.x)+'px';regionBoxEl.style.top=Math.min(a.y,b2.y)+'px';regionBoxEl.style.width=Math.abs(a.x-b2.x)+'px';regionBoxEl.style.height=Math.abs(a.y-b2.y)+'px';}});
 function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;const q={};h.split('&').forEach(kv=>{const [k,v]=kv.split('=');q[k]=decodeURIComponent(v||'');});
@@ -1474,6 +1501,7 @@ function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;co
   if(q.m&&document.querySelector(`#anomMode button[data-m=${q.m}]`)){anomMode=q.m;document.querySelectorAll('#anomMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.m));}
   if(q.g){const [a,b]=q.g.split(',');if(VARS[a]){sel.ICOS=a;}if(VARS[b]){sel.NOAA=b;}document.querySelectorAll('input[name=varICOS]').forEach(r=>r.checked=r.value===sel.ICOS);document.querySelectorAll('input[name=varNOAA]').forEach(r=>r.checked=r.value===sel.NOAA);}
   if(q.s){['ICOS','NOAA','OpenAQ'].forEach((n,i)=>{const ck=document.querySelector(`.netCk[data-net=${n}]`);const on=q.s[i]!=='0';if(ck.checked!==on){ck.checked=on;on?groups[n].addTo(map):map.removeLayer(groups[n]);}});}
+  if(q.x){['FLUXNET2015','FLUXNET-CH4'].forEach((n,i)=>{const ck=document.querySelector(`.fluxCk[data-net="${n}"]`);const on=q.x[i]==='1';if(ck.checked!==on){ck.checked=on;on?fluxGroups[n].addTo(map):map.removeLayer(fluxGroups[n]);}});}
   if(q.f==='0'){document.getElementById('ckFire').checked=false;if(map.hasLayer(fireLayer))map.removeLayer(fireLayer);}else if(q.f==='1'){document.getElementById('ckFire').checked=true;if(!map.hasLayer(fireLayer))fireLayer.addTo(map);}
   for(const net in NETS)buildNet(net);updateLegend();
   ['pm','co','fm'].forEach(k=>{const id={pm:'pmMode',co:'coMode',fm:'fmMode'}[k];const mode={pm:pmMode,co:coMode,fm:fmMode}[k];document.querySelectorAll(`#${id} button`).forEach(x=>x.classList.toggle('on',x.dataset.m===mode));});
