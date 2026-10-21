@@ -963,6 +963,15 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
       <p class="note" id="coNote"></p>
     </div>
   </div>
+  <h2>Basemap · Ocean</h2>
+  <div class="opt" data-base="sst">
+    <div class="hd"><input type="radio" name="base" value="sst"><span class="lbl">SST anomaly<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="slider"><input type="range" id="sstSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="sstDate"></b></div></div>
+      <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#2166ac,#92c5de,#f7f7f7,#f4a582,#b2182b)"></div><div class="lab2"><span>−3 °C</span><span>0</span><span>+3 °C</span></div></div>
+      <p class="note" id="sstNote"></p>
+    </div>
+  </div>
   <h2>Basemap · Fire</h2>
   <div class="opt" data-base="firem">
     <div class="hd"><input type="radio" name="base" value="firem"><span class="lbl">Fire activity<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
@@ -1028,6 +1037,8 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   <tr><td>Fire activity basemap</td><td>NASA GIBS layer <em>VIIRS SNPP Thermal Anomalies 375 m (All)</em>: rendered fire pixels on every third day of each month counted per 2° cell and scaled to the full month. A count of rendered pixels, not of FIRMS detections, so dense clusters are undercounted.</td><td>Oct 2025 – Oct 2026 (October to the 17th); anomaly vs 2021–2025 same month, from the same sampling.</td></tr>
   <tr><td>Region comparison</td><td>Area means over the drawn box from 2° grids: MODIS NDVI anomaly, OCO-2 XCO₂ (0.25°), AIRS CO (1.5°), GEOS-CF PM₂.₅ (2°), VIIRS fire counts (2°), plus monthly-mean Niño 3.4.</td><td>Same dates as the corresponding basemaps.</td></tr>
   <tr><td>Click-for-value</td><td>Clicking the map reads the active basemap’s grid at that point. Values come from the embedded coarse grids, so the NDVI readout is the 2° MODIS value even when the 0.05° image is displayed.</td><td>—</td></tr>
+  <tr><td>SST anomaly basemap</td><td>NASA GIBS layer <em>GHRSST L4 MUR25 Sea Surface Temperature Anomalies</em> (JPL MUR 0.25° analysis minus its 2003–2014 daily climatology), colour-decoded, sampled every fifth day and averaged to monthly means on a 1° grid.</td><td>Oct 2025 – Oct 2026 (October from three days).</td></tr>
+  <tr><td>ENSO outlook</td><td>NOAA CPC ENSO Diagnostic Discussion: alert-system status and the synopsis sentence, scraped from the discussion page at build time (issued monthly on the second Thursday).</td><td>Latest issue date shown in the card.</td></tr>
   <tr><td>Coastlines</td><td><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> 1:110m land polygons (public domain).</td><td>—</td></tr></table>
 
   <h3>How the station values are aggregated</h3>
@@ -1082,8 +1093,8 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
 (async function(){
 async function J(id){const el=document.getElementById(id);if(!el){const r=await fetch('data/'+id+'.json');if(!r.ok)throw new Error('missing data/'+id+'.json');return r.json();}if(el.dataset.gz!=='1')return JSON.parse(el.textContent);if(!('DecompressionStream' in window)){document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;inset:0;z-index:9999;background:#fff;padding:40px;font-family:sans-serif">This dashboard needs a browser from 2023 or later (Chrome 80+, Safari 16.4+, Firefox 113+).</div>');throw new Error('no DecompressionStream');}const bin=Uint8Array.from(atob(el.textContent),c=>c.charCodeAt(0));const ds=new DecompressionStream('gzip');const w=ds.writable.getWriter();w.write(bin);w.close();const buf=await new Response(ds.readable).arrayBuffer();return JSON.parse(new TextDecoder().decode(buf));}
 const prog=(n,t)=>{const el=document.getElementById('splashBar');if(el)el.style.width=Math.round(100*n/t)+'%';};
-const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2'];let done=0;
-const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
+const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2','d-sst','d-outlook'];let done=0;
+const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,SST,OUTLOOK]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
 NDVI.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('ndvi-img-'+i);return el?el.textContent:'data/ndvi-img-'+i+'.webp';}}));
 S3N.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('s3-img-'+i);return el?el.textContent:'data/s3-img-'+i+'.png';}}));
 const NETS={ICOS:ST.icos,NOAA:ST.noaa,OpenAQ:ST.aq};
@@ -1195,6 +1206,7 @@ const ocoSl=document.getElementById('ocoSl'); ocoSl.max=OCO.cycles.length-1; oco
 const ndviSl=document.getElementById('ndviSl'); ndviSl.max=NDVI.length-1; ndviSl.value=NDVI.length-1;
 const s3Sl=document.getElementById('s3Sl'); s3Sl.max=S3N.length-1; s3Sl.value=S3N.length-1;
 const pmSl=document.getElementById('pmSl'); pmSl.max=PM.months.length-1; pmSl.value=PM.months.length-1;
+const sstSl=document.getElementById('sstSl'); sstSl.max=SST.months.length-1; sstSl.value=SST.months.length-1;
 let baseLayer=null, cmpLayer=null, baseMode='ndvi', pmMode='abs', coMode='abs', fmMode='abs', ocoMode='abs';
 const gridCache={};function cached(key,fn){return gridCache[key]||(gridCache[key]=fn());}
 function zonal(key,a,ny,nx,band,nodata){return cached(key,()=>{const out=new Int16Array(a.length);for(let y0=0;y0<ny;y0+=band){let s=0,n=0;for(let y=y0;y<Math.min(ny,y0+band);y++)for(let x=0;x<nx;x++){const v=a[y*nx+x];if(v!==nodata){s+=v;n++;}}const m=n?s/n:0;for(let y=y0;y<Math.min(ny,y0+band);y++)for(let x=0;x<nx;x++){const k=y*nx+x;out[k]=a[k]===nodata||!n?-32768:Math.round(a[k]-m);}}return out;});}
@@ -1204,7 +1216,7 @@ const fmSl=document.getElementById('fmSl'); fmSl.max=FIREM.months.length-1; fmSl
 const COSEQ=[[255,253,218],[254,196,79],[217,95,14],[140,20,60],[47,5,74]], FMSEQ=[[255,245,204],[254,178,76],[240,59,32],[128,0,38]];
 function decode8(b64){const bin=atob(b64);const a=new Int8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=(bin.charCodeAt(i)<<24)>>24;return a;}
 function decodeU8(b64){const bin=atob(b64);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a;}
-const SL={oco2:{el:'ocoSl',dates:OCO.cycles.map(c=>c.end)},ndvi:{el:'ndviSl',dates:NDVI.map(c=>c.date+'-15')},s3:{el:'s3Sl',dates:S3N.map(c=>c.date)},pm:{el:'pmSl',dates:PM.months.map(c=>c.date+'-15')},co:{el:'coSl',dates:CO.months.map(c=>c.date+'-15')},firem:{el:'fmSl',dates:FIREM.months.map(c=>c.date+'-15')}};
+const SL={oco2:{el:'ocoSl',dates:OCO.cycles.map(c=>c.end)},ndvi:{el:'ndviSl',dates:NDVI.map(c=>c.date+'-15')},s3:{el:'s3Sl',dates:S3N.map(c=>c.date)},pm:{el:'pmSl',dates:PM.months.map(c=>c.date+'-15')},co:{el:'coSl',dates:CO.months.map(c=>c.date+'-15')},firem:{el:'fmSl',dates:FIREM.months.map(c=>c.date+'-15')},sst:{el:'sstSl',dates:SST.months.map(c=>c.date+'-15')}};
 function nearestIdx(dates,d){const tt=Date.parse(d);let bi=0,bd=1e18;dates.forEach((x,i)=>{const dd=Math.abs(Date.parse(x)-tt);if(dd<bd){bd=dd;bi=i;}});return bi;}
 function curDate(mode){const s=SL[mode];return s?s.dates[+document.getElementById(s.el).value]:null;}
 function syncDates(from){if(!document.getElementById('ckSync').checked)return;const d=curDate(from);if(!d)return;for(const k in SL){if(k===from)continue;document.getElementById(SL[k].el).value=nearestIdx(SL[k].dates,d);}}
@@ -1214,6 +1226,7 @@ function layerFor(mode,idx,forCmp){
   if(mode==='s3'){return L.imageOverlay(S3N[idx].src,[[-60,-180],[80,180]],{pane:forCmp?'basemapB':'basemap',opacity:.95,interactive:false});}
   if(mode==='pm'){const c=PM.months[idx],abs=pmMode==='abs',zn=pmMode==='zonal';const arr=zn?zonal('pmz'+idx,cached('pma'+idx,()=>decode16(c.abs)),PM.ny,PM.nx,1,-32768):decode16(abs?c.abs:c.anom);return L.imageOverlay(gridImage('pm'+idx+pmMode,PM.nx,PM.ny,arr,v=>abs?[ramp(v/60,PMSEQ),Math.round(Math.min(1,v/8)*205)]:[ramp((v+15)/30,DIV),Math.round(Math.min(1,Math.abs(v)/2.5)*215)]),[[-91,-181],[91,179]],{pane:forCmp?'basemapB':'basemap',opacity:.9,interactive:false});}
   if(mode==='co'){const c=CO.months[idx],abs=coMode==='abs',zn=coMode==='zonal';const arr=(abs||zn)?decodeU8(c.abs):decode8(c.anom);let a16=new Int16Array(arr.length);for(let k=0;k<arr.length;k++)a16[k]=((abs||zn)?arr[k]===0:arr[k]===-128)?-32768:arr[k]*10;if(zn)a16=zonal('coz'+idx,a16,CO.ny,CO.nx,2,-32768);return L.imageOverlay(gridImage('co'+idx+coMode,CO.nx,CO.ny,a16,v=>abs?[ramp((v-60)/140,COSEQ),205]:[ramp((v+30)/60,DIV),Math.round(Math.min(1,Math.abs(v)/4)*215)]),[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.9,interactive:false});}
+  if(mode==='sst'){const c=SST.months[idx];return L.imageOverlay(gridImage('sst'+idx,SST.nx,SST.ny,cached('sst'+idx,()=>{const a=decode8(c.b64);const o=new Int16Array(a.length);for(let k=0;k<a.length;k++)o[k]=a[k]===-128?-32768:a[k]*5;return o;}),v=>[ramp((v/10+3)/6,DIV),225]),[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.92,interactive:false});}
   if(mode==='firem'){const c=FIREM.months[idx],abs=fmMode==='abs';return L.imageOverlay(gridImage('fm'+idx+fmMode,FIREM.nx,FIREM.ny,decode16(abs?c.abs:c.anom),v=>abs?[ramp(Math.log10(1+v)/3,FMSEQ),Math.round(Math.min(1,v/5)*215)]:[ramp((v+300)/600,DIV),Math.round(Math.min(1,Math.abs(v)/30)*215)]),[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.9,interactive:false});}
   return null;}
 map.createPane('basemapB').style.zIndex=355;
@@ -1263,6 +1276,10 @@ function showBase(from){
     document.getElementById('coBar').style.background=`linear-gradient(90deg,${(abs?COSEQ:DIV).map(c=>`rgb(${c.join(',')})`).join(',')})`;
     document.getElementById('coLab').innerHTML=abs?'<span>60 ppb</span><span>130</span><span>≥ 200 ppb</span>':'<span>−30 ppb</span><span>0</span><span>+30 ppb</span>';
     document.getElementById('coNote').textContent=`AIRS (Aqua) Level-3 carbon monoxide volume mixing ratio at 500 hPa, daytime, monthly mean on a 1.5° grid${abs?'':coMode==='zonal'?'; zonal = each cell minus the mean of its 3° latitude band this month':'; anomaly = this month minus the 2021–2025 same-month mean'}. Mid-tropospheric CO is the cleanest satellite tracer of biomass-burning plumes. Source: NASA GIBS (AIRS L3 CO monthly; Sep–Oct 2026 are means of alternate daily images). Global mean ${c.mean.toFixed(0)} ppb${abs?'':`, mean anomaly ${c.manom>=0?'+':''}${c.manom.toFixed(1)} ppb`}.`;
+  } else if(baseMode==='sst'){
+    const i=+sstSl.value,c=SST.months[i];baseLayer=layerFor('sst',i).addTo(map);
+    const [y,m]=c.date.split('-');document.getElementById('sstDate').textContent=MON[+m-1]+' '+y+(c.partial?' (to 17 Oct)':'');
+    document.getElementById('sstNote').textContent=`Monthly mean sea-surface temperature anomaly from the GHRSST MUR 0.25° analysis (NASA JPL; anomaly relative to its 2003–2014 daily climatology), sampled every fifth day and averaged on a 1° grid. Niño 3.4 box mean this month: ${c.nino34>0?'+':''}${c.nino34.toFixed(2)} °C (CPC’s ERSST-based value differs by a few tenths because of the different baseline). Source: NASA GIBS.`;
   } else if(baseMode==='firem'){
     const i=+fmSl.value,c=FIREM.months[i],abs=fmMode==='abs';baseLayer=layerFor('firem',i).addTo(map);
     const [y,m]=c.date.split('-');document.getElementById('fmDate').textContent=MON[+m-1]+' '+y+(c.partial?' (to 17 Oct)':'');
@@ -1273,7 +1290,7 @@ function showBase(from){
   if(document.getElementById('ckCmp').checked)showCmp();
   updateHash();
 }
-const slMode={ocoSl:'oco2',ndviSl:'ndvi',s3Sl:'s3',pmSl:'pm',coSl:'co',fmSl:'firem'};
+const slMode={ocoSl:'oco2',ndviSl:'ndvi',s3Sl:'s3',pmSl:'pm',coSl:'co',fmSl:'firem',sstSl:'sst'};
 for(const id in slMode) document.getElementById(id).addEventListener('input',()=>showBase(slMode[id]));
 document.querySelectorAll('#ocoMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#ocoMode button').forEach(x=>x.classList.toggle('on',x===b));ocoMode=b.dataset.m;showBase();}));
 document.querySelectorAll('#coMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#coMode button').forEach(x=>x.classList.toggle('on',x===b));coMode=b.dataset.m;showBase();}));
@@ -1407,7 +1424,7 @@ function spark(cv,series,opts){const marks=opts.marks||[];const dpr=devicePixelR
   g.textAlign='left';g.fillStyle=dark()?'#8ea0c6':'#666';g.font='10px Open Sans';g.fillText(series[0][0].slice(0,4),2,H-1);g.textAlign='right';g.fillText(series[series.length-1][0].slice(0,7),W-2,H-1);}
 function renderEnso(){const L=ENSO.latest,ph=L.phase;const cls=ph==='El Niño'?'':ph==='La Niña'?'nina':'neu';
   const gl=ENSO.global_co2;const gr=[];for(let i=12;i<gl.length;i++)gr.push([`${gl[i][0]}-${String(gl[i][1]).padStart(2,'0')}`,+(gl[i][3]-gl[i-12][3]).toFixed(2)]);
-  document.getElementById('ensoCard').innerHTML=`<div class="row1"><span class="badge ${cls}">${ph}</span><span class="v">Niño 3.4 ${L.week[2]>0?'+':''}${L.week[2].toFixed(1)} °C</span><small>week of ${fmtD(L.week[0])} · ONI ${L.oni[0]} ${L.oni[1]}: ${L.oni[2]>0?'+':''}${L.oni[2].toFixed(2)}</small></div><small>Niño 3.4 weekly SST anomaly, 2014 → now (NOAA CPC, OISST v2.1, 1991–2020 base)</small><canvas id="ensoCv"></canvas><small style="display:block;margin-top:6px">Global CO₂ 12-month growth rate, ppm/yr (NOAA GML marine surface mean, deseasonalised); latest ${gr[gr.length-1][1].toFixed(2)}</small><canvas id="grCv"></canvas>`;
+  document.getElementById('ensoCard').innerHTML=`<div class="row1"><span class="badge ${cls}">${ph}</span><span class="v">Niño 3.4 ${L.week[2]>0?'+':''}${L.week[2].toFixed(1)} °C</span><small>week of ${fmtD(L.week[0])} · ONI ${L.oni[0]} ${L.oni[1]}: ${L.oni[2]>0?'+':''}${L.oni[2].toFixed(2)}</small></div><small>Niño 3.4 weekly SST anomaly, 2014 → now (NOAA CPC, OISST v2.1, 1991–2020 base)</small><canvas id="ensoCv"></canvas><div style="margin:6px 0 2px;padding:6px 8px;background:var(--panel);border-left:3px solid var(--coral);font-size:11.5px;line-height:1.45"><b style="color:var(--text)">CPC outlook (${OUTLOOK.issued}):</b> ${OUTLOOK.status}. ${OUTLOOK.synopsis.split('. ')[0]}. <a href="${OUTLOOK.url}" target="_blank" rel="noopener" style="color:var(--blue)">Full discussion ↗</a></div><small style="display:block;margin-top:6px">Global CO₂ 12-month growth rate, ppm/yr (NOAA GML marine surface mean, deseasonalised); latest ${gr[gr.length-1][1].toFixed(2)}</small><canvas id="grCv"></canvas>`;
   const peaks=(()=>{const out=[];for(let i=0;i<gr.length;i++){const [k,v]=gr[i];if(v>=3&&gr.slice(Math.max(0,i-8),i+9).every(q=>q[1]<=v))out.push(k);}return out;})();
   const ninoPk=(()=>{const w=ENSO.weekly;const out=[];for(let i=0;i<w.length;i++){if(w[i][2]>=1.5&&w.slice(Math.max(0,i-40),i+41).every(q=>q[2]<=w[i][2]))out.push(w[i][0]);}return out;})();
   spark(document.getElementById('ensoCv'),ENSO.weekly.map(p=>[p[0],p[2]]),{color:'#e8930b',fill:'rgba(232,147,11,.25)',fillZero:0,zero:0,lo:-3,hi:3.5,bands:[[0.5,9,'rgba(235,65,65,.07)'],[-9,-0.5,'rgba(44,133,215,.07)']],marks:ninoPk.map(d=>['El Niño peak',d,'#b2182b'])});
@@ -1433,6 +1450,7 @@ function showRegion(b){const el=document.getElementById('chart');el.classList.ad
    {name:'AIRS CO 500 hPa (ppb)',unit:'ppb',dp:0,pts:CO.months.map(c=>{const a=decodeU8(c.abs);const a16=new Int16Array(a.length);for(let k=0;k<a.length;k++)a16[k]=a[k]===0?-32768:a[k]*10;return [c.date,gridMean(a16,CO.nx,CO.ny,-32768,10,b,90,-90,-180,180)];}),color:'#8c1440'},
    {name:'GEOS-CF PM₂.₅ (µg/m³)',unit:'µg/m³',dp:1,pts:PM.months.map(c=>[c.date,gridMean(decode16(c.abs),PM.nx,PM.ny,-32768,10,b,91,-91,-181,179)]),color:'#e8930b'},
    {name:'VIIRS fire detections (per 2° cell, mean)',unit:'',dp:0,pts:FIREM.months.map(c=>[c.date,gridMean(decode16(c.abs),FIREM.nx,FIREM.ny,-32768,1,b,90,-90,-180,180)]),color:'#eb4141'},
+   {name:'SST anomaly, area mean (°C)',unit:'°C',dp:2,pts:SST.months.map(c=>[c.date,gridMean(decode8(c.b64),SST.nx,SST.ny,-128,20,b,90,-90,-180,180)]),color:'#2166ac'},
    {name:'Niño 3.4 SST anomaly (°C)',unit:'°C',dp:2,pts:Object.keys(NINO_M).filter(k=>k>='2025-09').sort().map(k=>[k,NINO_M[k]]),color:'#6b7fa3'}];
   rcharts.forEach(c=>c.destroy());rcharts=[];g.innerHTML=series.map((s,i)=>`<div class="mini"><span>${s.name}</span><canvas id="rc${i}"></canvas></div>`).join('');
   series.forEach((s,i)=>{rcharts.push(new Chart(document.getElementById('rc'+i),{type:'line',data:{labels:s.pts.map(p=>p[0]),datasets:[{data:s.pts.map(p=>p[1]),borderColor:s.color,backgroundColor:s.color+'22',borderWidth:1.6,pointRadius:2,tension:.25,fill:true,spanGaps:true}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y==null?'–':c.parsed.y.toFixed(s.dp)+(s.unit?' '+s.unit:'')}}},scales:{x:{ticks:{font:{size:9},maxTicksLimit:6,color:'#8ea0c6'},grid:{display:false}},y:{ticks:{font:{size:9},color:'#8ea0c6',maxTicksLimit:4},grid:{color:dark()?'rgba(255,255,255,.08)':'rgba(0,0,0,.06)'}}}}}));});
@@ -1472,6 +1490,7 @@ function valuesAt(ll){const la=ll.lat,lo=ll.lng,rows=[];const f=(v,dp,u)=>v==nul
   if(baseMode==='pm'){const i=+pmSl.value,c=PM.months[i];rows.push(['GEOS-CF PM₂.₅ '+c.date+' (2°)',f(cellVal(cached('pma'+i,()=>decode16(c.abs)),PM.nx,PM.ny,-32768,10,la,lo,91,-91,-181),1,'µg/m³')],['Anomaly vs 2021–25',f(cellVal(cached('pmn'+i,()=>decode16(c.anom)),PM.nx,PM.ny,-32768,10,la,lo,91,-91,-181),1,'µg/m³')]);}
   if(baseMode==='co'){const i=+coSl.value,c=CO.months[i];const a=cached('coa'+i,()=>decodeU8(c.abs));const v=cellVal(a,CO.nx,CO.ny,0,1,la,lo,90,-90,-180);const an=cellVal(cached('con'+i,()=>decode8(c.anom)),CO.nx,CO.ny,-128,1,la,lo,90,-90,-180);rows.push(['AIRS CO 500 hPa '+c.date+' (1.5°)',f(v,0,'ppb')],['Anomaly vs 2021–25',f(an,0,'ppb')]);}
   if(baseMode==='firem'){const i=+fmSl.value,c=FIREM.months[i];rows.push(['VIIRS fire detections '+c.date+' (2°)',f(cellVal(cached('fma'+i,()=>decode16(c.abs)),FIREM.nx,FIREM.ny,-32768,1,la,lo,90,-90,-180),0)],['Anomaly vs 2021–25',f(cellVal(cached('fmn'+i,()=>decode16(c.anom)),FIREM.nx,FIREM.ny,-32768,1,la,lo,90,-90,-180),0)]);}
+  if(baseMode==='sst'){const i=+sstSl.value,c=SST.months[i];rows.push(['SST anomaly '+c.date+' (1°)',f(cellVal(cached('sst8'+i,()=>decode8(c.b64)),SST.nx,SST.ny,-128,20,la,lo,90,-90,-180),2,'°C')]);}
   if(baseMode==='none'&&!rows.length)return null;
   const k=NINO_M[Object.keys(NINO_M).sort().pop()];rows.push(['Niño 3.4 now',(k>0?'+':'')+k.toFixed(2)+' °C']);return rows;}
 const hov=document.createElement('div');hov.id='hover';hov.style.display='none';document.getElementById('map').appendChild(hov);
@@ -1519,6 +1538,7 @@ function fillAsOf(){const ym=(y,m)=>`${MON[m-1]} ${y}`;const latest=net=>{let b=
   const pm=PM.months[PM.months.length-1];rows.push(['GEOS-CF PM₂.₅',ym(+pm.date.slice(0,4),+pm.date.slice(5,7)),pm.partial?'partial month':'']);
   const co=CO.months[CO.months.length-1];rows.push(['AIRS CO',ym(+co.date.slice(0,4),+co.date.slice(5,7)),co.partial?'partial month':'']);
   const fm=FIREM.months[FIREM.months.length-1];rows.push(['Fire activity (monthly)',ym(+fm.date.slice(0,4),+fm.date.slice(5,7)),fm.partial?'partial month':'']);
+  const ss=SST.months[SST.months.length-1];rows.push(['SST anomaly (MUR)',ym(+ss.date.slice(0,4),+ss.date.slice(5,7)),ss.partial?'partial month':'']);rows.push(['CPC ENSO outlook',OUTLOOK.issued,OUTLOOK.status]);
   rows.push(['VIIRS active fires (24 h)',fmtD(FIRES.dates[FIRES.dates.length-1]),`${FIRES.n.toLocaleString()} detections`]);
   rows.push(['Niño 3.4 weekly / ONI',fmtD(ENSO.latest.week[0]),`ONI ${ENSO.latest.oni[0]} ${ENSO.latest.oni[1]}`]);
   const gl=ENSO.global_co2[ENSO.global_co2.length-1];rows.push(['NOAA global CO₂ (growth rate)',ym(gl[0],gl[1]),'marine surface mean']);
