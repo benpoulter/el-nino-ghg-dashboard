@@ -7,8 +7,9 @@ W='https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST
 def get(layer,date,w,h,path):
     if os.path.exists(path) and os.path.getsize(path)>500: return path
     for k in range(3):
-        subprocess.run(['curl','-s','-m','120','-o',path,f"{W}&LAYERS={layer}&WIDTH={w}&HEIGHT={h}&TIME={date}"])
+        r=subprocess.run(['curl','-s','-L','-m','300','--retry','2','-A','Mozilla/5.0 (dashboard-build)','-o',path,'-w','%{http_code}',f"{W}&LAYERS={layer}&WIDTH={w}&HEIGHT={h}&TIME={date}"],capture_output=True,text=True)
         if os.path.exists(path) and os.path.getsize(path)>500: return path
+        if k==2: print('GIBS fail',layer[:30],date,'http',r.stdout,flush=True)
     return None
 months=[tuple(x) for x in _json.loads(_MJ)] if _MJ else [(2025,10),(2025,11),(2025,12)]+[(2026,m) for m in range(1,11)]
 # ---------- fires: sampled days -> 1deg counts ----------

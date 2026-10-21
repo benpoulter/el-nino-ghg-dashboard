@@ -8,12 +8,15 @@ W='https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST
 ents=re.findall(r'<ColorMapEntry rgb="(\d+),(\d+),(\d+)"[^>]*value="\[([-\d.]+),([-\d.]+)[\)\]]"',open('ndvi/cmap.xml').read())
 lk={int(r)*65536+int(g)*256+int(b):(float(lo)+float(hi))/2 for r,g,b,lo,hi in ents}
 months=[tuple(x) for x in _json.loads(_MJ)][:-1] if _MJ else [(2025,m) for m in range(10,13)]+[(2026,m) for m in range(1,10)]  # MODIS monthly lags ~1 month
+os.makedirs('ndvi_hi',exist_ok=True)
 def get(y,m,w,h):
     f=f"ndvi_hi/n{w}_{y}-{m:02d}.png"
     if not os.path.exists(f) or os.path.getsize(f)<20000:
         for k in range(3):
-            subprocess.run(['curl','-s','-m','300','-o',f,f"{W}&WIDTH={w}&HEIGHT={h}&TIME={y}-{m:02d}-01"])
+            r=subprocess.run(['curl','-s','-L','-m','600','--retry','2','-A','Mozilla/5.0 (dashboard-build)','-o',f,'-w','%{http_code}',f"{W}&WIDTH={w}&HEIGHT={h}&TIME={y}-{m:02d}-01"],capture_output=True,text=True)
             if os.path.exists(f) and os.path.getsize(f)>20000: break
+            body=open(f,'rb').read(200) if os.path.exists(f) else b''
+            print(f'GIBS {y}-{m:02d} {w}px attempt {k+1}: http {r.stdout} size {os.path.getsize(f) if os.path.exists(f) else 0} {body[:120]!r}',flush=True)
     return f if os.path.exists(f) and os.path.getsize(f)>20000 else None
 def dec(f):
     im=np.array(Image.open(f).convert('RGBA')); c=im[...,:3].reshape(-1,3).astype(np.int32); keys=c[:,0]*65536+c[:,1]*256+c[:,2]
@@ -51,5 +54,6 @@ for y,m in months:
     fy=an.shape[0]//90; fx=an.shape[1]//180; a2=np.nanmean(an[:90*fy,:180*fx].reshape(90,fy,180,fx),axis=(1,3))
     g2.append(dict(date=f"{y}-{m:02d}",b64=__import__('base64').b64encode(np.where(np.isnan(a2),-128,np.clip(np.round(a2*200),-127,127)).astype(np.int8).tobytes()).decode()))
     print(y,m,os.path.getsize(out),flush=True)
+if not meta: raise SystemExit('MODIS: no months built (see GIBS messages above)')
 json.dump(meta,open('ndvi_hi/meta.json','w'))
 json.dump(dict(ny=90,nx=180,scale=200,months=g2),open('data/ndvi2.json','w'))
