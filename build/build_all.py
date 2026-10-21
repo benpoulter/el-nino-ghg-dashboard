@@ -204,8 +204,12 @@ def step_oco2():
         from concurrent.futures import ThreadPoolExecutor
         def _dl(item):
             d,prod,fn=item; path=f'{D}/oco2dl/{fn}'
-            subprocess.run(f'curl -s -L -m 600 -H "Authorization: Bearer {TOK}" -o {path} {B}{prod}/{d.year}/{fn}',shell=True); return item,path
-        with ThreadPoolExecutor(6) as ex: dls=list(ex.map(_dl,todo))
+            for attempt in range(4):
+                subprocess.run(f'curl -s -L -m 600 --retry 2 -H "Authorization: Bearer {TOK}" -o {path} {B}{prod}/{d.year}/{fn}',shell=True)
+                if os.path.exists(path) and open(path,'rb').read(8).startswith(b'\x89HDF'): break
+                time.sleep(5*(attempt+1))
+            return item,path
+        with ThreadPoolExecutor(4) as ex: dls=list(ex.map(_dl,todo))
         for (d,prod,fn),path in dls:
             if not os.path.exists(path): continue
             head=open(path,'rb').read(8)
@@ -222,7 +226,9 @@ def step_oco2():
         if ok==0: continue
         g=np.where(N>0,S/np.maximum(N,1),np.nan)
         rec=dict(end=str(e),start=str(e-dt.timedelta(days=15)),days=ok,n=n,cells=int((N>0).sum()),mean=float(np.nanmean(g)),src=sorted(srcs),b64=base64.b64encode(np.where(np.isnan(g),-32768,np.round(g*10)).astype(np.int16).tobytes()).decode())
-        json.dump(rec,open(cp,'w')); out.append(rec); print(e,ok,n,flush=True)
+        if ok>=max(10,len(todo)-2): json.dump(rec,open(cp,'w'))
+        else: print('OCO-2 window',e,'incomplete (',ok,'of',len(todo),'days) - not cached, will retry next run')
+        out.append(rec); print(e,ok,n,flush=True)
     print('windows built',len(out),'of',len(ends),'; daily files found',len(files))
     if not out: raise SystemExit('OCO-2: no windows built')
     json.dump(dict(res=0.25,ny=NY,nx=NX,cycles=out),open(f'{D}/oco2_fwd.json','w'))
@@ -491,6 +497,15 @@ def replace_data_blocks(page):
     for id_,f in blocks.items():
         if not os.path.exists(f): print('missing',f); continue
         obj=json.load(open(f)); main=obj.get('cycles') or obj.get('months') or (obj if isinstance(obj,list) else obj)
+        if id_=='d-oco2':
+            mm=re.search(r'<script id="d-oco2" type="application/json" data-gz="1">(.*?)</script>',t,re.S)
+            if mm:
+                old={c['end']:c for c in json.loads(gzip.decompress(base64.b64decode(mm.group(1))))['cycles']}
+                merged=[]
+                for c in obj['cycles']:
+                    o=old.get(c['end'])
+                    merged.append(o if (o and o.get('days',0)>c.get('days',0) and o.get('b64') and len(base64.b64decode(o['b64']))==2*obj['nx']*obj['ny']) else c)
+                obj['cycles']=merged
         if isinstance(main,(list,dict)) and len(main)==0: print('empty, skipped',f); continue
         t=re.sub(rf'<script id="{id_}" type="application/json" data-gz="1">.*?</script>',lambda m:f'<script id="{id_}" type="application/json" data-gz="1">'+gz(obj)+'</script>',t,flags=re.S)
     t=re.sub(r'(Snapshot )\d+ \w+ \d{4}',rf'\g<1>{SNAPSHOT}',t)
