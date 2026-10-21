@@ -33,12 +33,19 @@ for y,m in months:
     if _time.time()-_T0>_B-35*60: print('MODIS: budget reached'); break
     hi=(y,m)==months[-1]; w,h=(7200,3600) if hi else (2880,1440)
     out=f"ndvi_hi/anom_{y}-{m:02d}.png"
-    cur=dec(get(y,m,w,h)); S=np.zeros_like(cur); N=np.zeros_like(cur)
+    fcur=get(y,m,w,h)
+    if not fcur: print('MODIS: no image for',y,m,'- skipped'); continue
+    try: cur=dec(fcur)
+    except Exception as e: print('MODIS: bad image for',y,m,e,'- skipped'); os.remove(fcur); continue
+    S=np.zeros_like(cur); N=np.zeros_like(cur)
     for yy in range(y-5,y):
         f=get(yy,m,w,h)
         if not f: continue
-        b=dec(f); ok=~np.isnan(b); S[ok]+=b[ok]; N[ok]+=1; del b
-    an=cur-np.where(N>0,S/np.maximum(N,1),np.nan); an[N<1]=np.nan
+        try: b=dec(f)
+        except Exception: os.remove(f); continue
+        ok=~np.isnan(b); S[ok]+=b[ok]; N[ok]+=1; del b
+    if N.max()<3: print('MODIS: fewer than 3 baseline years for',y,m,'- skipped'); continue
+    an=cur-np.where(N>0,S/np.maximum(N,1),np.nan); an[N<3]=np.nan
     img=Image.fromarray(colorize(an),'RGBA').quantize(colors=128,method=Image.Quantize.FASTOCTREE); img.save(out,optimize=True)
     meta.append(dict(date=f"{y}-{m:02d}",baseline=f"{y-5}–{y-1} ({int(N.max())} yrs)",mean=float(np.nanmean(an)),file=os.path.basename(out),res=0.05 if hi else 0.125))
     fy=an.shape[0]//90; fx=an.shape[1]//180; a2=np.nanmean(an[:90*fy,:180*fx].reshape(90,fy,180,fx),axis=(1,3))
