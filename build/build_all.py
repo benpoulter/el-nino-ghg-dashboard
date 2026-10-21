@@ -363,7 +363,15 @@ def step_registries():
             if not m: continue
             name=c[0]; dl=c[4] if len(c)>4 else ''; yrs=re.findall(r'(20\d\d)-\d\d-\d\d',dl); snm=re.search(r'SN\d+',c[2])
             cc.append(dict(id=re.sub(r'[^A-Za-z]','',name.split(',')[0])[:12]+'-'+(snm.group(0) if snm else ''),name=name.split('(')[0].strip(),country=(name.split(',')[-1].strip() if ',' in name else ''),lat=round(float(m.group(1).replace(',','.')),3),lon=round(float(m.group(2).replace(',','.')),3),inst=c[1],instrument=c[2][:40],kind=kind,period=f"{min(yrs)}–{max(yrs)}" if yrs else '',data=bool(dl.strip())))
-    json.dump(dict(TCCON=tc,COCCON=cc),open(f'{D}/col.json','w')); print('TCCON',len(tc),'COCCON',len(cc))
+    order={'operational':0,'spain':1,'campaign':2}; seen=set(); ccu=[]
+    for x in sorted(cc,key=lambda x:order[x['kind']]):
+        k=(x['name'].lower(),x['instrument'][:6])
+        if k in seen: continue
+        seen.add(k); ccu.append(x)
+    import collections; cnt=collections.Counter(x['id'] for x in tc); nn={}
+    for x in tc:
+        if cnt[x['id']]>1: nn[x['id']]=nn.get(x['id'],0)+1; x['id']=f"{x['id']}{nn[x['id']]:02d}"
+    json.dump(dict(TCCON=tc,COCCON=ccu),open(f'{D}/col.json','w')); print('TCCON',len(tc),'COCCON',len(ccu))
 def step_fires():
     pts=[]
     for u in ('https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv','https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv'):
