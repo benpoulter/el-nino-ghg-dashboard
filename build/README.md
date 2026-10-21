@@ -51,3 +51,6 @@ to validate the assembly after script changes, without committing anything.
 `dashboard-single.html` is the self-contained page (what the claude.ai artifact uses). `index.html` is a 0.3 MB shell
 that loads the same data from `data/` (made by `split_page.py`). `test_page.py` smoke-tests the page in headless
 Chromium before the workflow commits; the `refresh.yml.example` pip line installs Playwright for it.
+
+## Registry layers
+`python3 build_all.py registries` refreshes the FLUXNET2015 / FLUXNET-CH4, TCCON and COCCON site lists (not part of the weekly `STEPS`; run it quarterly or when a network changes, then `assemble`).

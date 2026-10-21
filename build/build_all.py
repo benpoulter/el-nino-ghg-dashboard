@@ -303,6 +303,67 @@ def step_sst():
         out.append(dict(date=f'{y}-{m:02d}',partial=(y,m)==MONTHS[-1],ndays=len(vs),mean=float(np.nanmean(a1)),nino34=n34,b64=base64.b64encode(np.where(np.isnan(a1),-128,np.clip(np.round(np.nan_to_num(a1,nan=-99)*20),-127,127)).astype(np.int8).tobytes()).decode(),file=os.path.basename(fn)))
         print('SST',y,m,len(vs),round(n34,2),flush=True)
     json.dump(dict(ny=180,nx=360,scale=20,months=out),open(f'{D}/sst.json','w'))
+def step_registries():
+    """FLUXNET2015 / FLUXNET-CH4 (AmeriFlux site API + site pages), TCCON (tccondata.org), COCCON (KIT repository page)."""
+    import requests
+    from concurrent.futures import ThreadPoolExecutor
+    UA={'User-Agent':'Mozilla/5.0 (dashboard-build)'}
+    # --- FLUXNET
+    lists={n:requests.get(f'https://amfcdn.lbl.gov/api/v1/site_display/FLUXNET/{n}',headers=UA,timeout=60).json() for n in ['FLUXNET2015','FLUXNET-CH4']}
+    ids=sorted(set(x['SITE_ID'] for L in lists.values() for x in L)); os.makedirs('flux_pages',exist_ok=True)
+    def get(sid):
+        f=f'flux_pages/{sid}.html'
+        if not os.path.exists(f) or os.path.getsize(f)<5000: subprocess.run(['curl','-s','-m','60','-A','Mozilla/5.0','-o',f,f'https://fluxnet.org/sites/siteinfo/{sid}'])
+    with ThreadPoolExecutor(8) as ex: list(ex.map(get,ids))
+    def parse(sid):
+        f=f'flux_pages/{sid}.html'
+        if not os.path.exists(f) or os.path.getsize(f)<5000: return {}
+        t=html.unescape(re.sub(r'\s+',' ',re.sub('<[^>]+>','|',open(f).read())))
+        def grab(key,n=120):
+            i=t.find(key)
+            if i<0: return ''
+            parts=[q.strip() for q in t[i+len(key):i+len(key)+n].split('|') if q.strip()]; return parts[0] if parts else ''
+        pi=grab('PI:'); years=grab('Years Data Collected:'); elev=grab('Elevation(m):'); clim=grab('Climate Koeppen:')
+        m=re.search(r'(\d{4})\s*-\s*(Present|\d{4})',years)
+        return dict(pi=pi[:60],began=m.group(1) if m else '',end=m.group(2) if m else '',active=(m.group(2)=='Present') if m else None,elev=elev[:8],climate=clim.split('(')[0].strip()[:6])
+    meta={sid:parse(sid) for sid in ids}
+    IGBP={'ENF':'Evergreen needleleaf forest','EBF':'Evergreen broadleaf forest','DNF':'Deciduous needleleaf forest','DBF':'Deciduous broadleaf forest','MF':'Mixed forest','CSH':'Closed shrubland','OSH':'Open shrubland','WSA':'Woody savanna','SAV':'Savanna','GRA':'Grassland','WET':'Permanent wetland','CRO':'Cropland','URB':'Urban','CVM':'Cropland/natural mosaic','SNO':'Snow and ice','BSV':'Barren','WAT':'Water'}
+    flux={}
+    for n,L in lists.items():
+        rows=[]
+        for x in L:
+            m=meta.get(x['SITE_ID'],{}); loc=x.get('GRP_LOCATION',{})
+            try: lat=float(loc['LOCATION_LAT']); lon=float(loc['LOCATION_LONG'])
+            except Exception: continue
+            rows.append(dict(id=x['SITE_ID'],name=x['SITE_NAME'],country=x.get('COUNTRY',''),lat=round(lat,4),lon=round(lon,4),igbp=x.get('IGBP',''),veg=IGBP.get(x.get('IGBP',''),x.get('IGBP','')),years=x.get('CCBY4_0',''),pi=m.get('pi',''),began=m.get('began') or x.get('TOWER_BEGAN',''),end=m.get('end',''),active=m.get('active'),elev=m.get('elev') or loc.get('LOCATION_ELEV',''),climate=m.get('climate',''),url=x.get('URL_AMERIFLUX','')))
+        flux[n]=rows
+    json.dump(flux,open(f'{D}/flux.json','w')); print('FLUXNET',{k:len(v) for k,v in flux.items()})
+    # --- TCCON
+    sites=requests.get('https://tccondata.org/3a-std-public/tccon-site-locations.json',headers=UA,timeout=60).json()
+    home=html.unescape(re.sub(r'\s+',' ',re.sub('<[^>]+>','|',requests.get('https://tccondata.org/',headers=UA,timeout=60).text)))
+    latest={m.group(1):(m.group(2),m.group(3)) for m in re.finditer(r'\[([a-z]+\d\d)\][ |/]*(\d{4}-\d{2}-\d{2})[ |/]*(\d{4}-\d{2}-\d{2})',home)}
+    tc=[]
+    for x in sites:
+        nm=re.sub(r'[^a-z0-9]','',x['name'].lower()); nm=nm if re.search(r'\d\d$',nm) else nm+'01'
+        key=nm if nm in latest else next((k for k in latest if k.startswith(x['site_id']+'0')),None)
+        st,en=latest.get(key,(x['start_date'],x['end_date'] or '')); en=en or x['end_date'] or ''
+        active=(x['end_date'] is None) and (en>=(dt.date.today()-dt.timedelta(days=400)).isoformat() if en else True)
+        tc.append(dict(id=x['site_id'],name=x['name'],location=x['location'],lat=x['latitude'],lon=x['longitude'],start=x['start_date'],latest=en,active=active,url='https://tccondata.org/'))
+    # --- COCCON
+    page=requests.get('https://www.coccon.kit.edu/72.php',headers=UA,timeout=60).text; cc=[]
+    for tb in re.findall(r'<table.*?</table>',page,re.S):
+        rows=[[html.unescape(re.sub('<[^>]+>',' ',c)) for c in re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>',r,re.S)] for r in re.findall(r'<tr.*?</tr>',tb,re.S)]
+        hdr=[re.sub(r'\s+',' ',c).strip() for c in rows[0]] if rows else []
+        if not hdr or 'Coordinates' not in hdr: continue
+        kind='operational' if hdr[0]=='COCCON Site' else 'spain' if 'Spain' in hdr[0] else 'campaign'
+        for r in rows[1:]:
+            if len(r)<4: continue
+            c=[re.sub(r'\s+',' ',q).strip() for q in r]
+            m=re.search(r'Lat\s*=\s*(-?[\d.,]+)[°]?.*?Lon\s*=\s*(-?[\d.,]+)',c[3])
+            if not m: continue
+            name=c[0]; dl=c[4] if len(c)>4 else ''; yrs=re.findall(r'(20\d\d)-\d\d-\d\d',dl); snm=re.search(r'SN\d+',c[2])
+            cc.append(dict(id=re.sub(r'[^A-Za-z]','',name.split(',')[0])[:12]+'-'+(snm.group(0) if snm else ''),name=name.split('(')[0].strip(),country=(name.split(',')[-1].strip() if ',' in name else ''),lat=round(float(m.group(1).replace(',','.')),3),lon=round(float(m.group(2).replace(',','.')),3),inst=c[1],instrument=c[2][:40],kind=kind,period=f"{min(yrs)}–{max(yrs)}" if yrs else '',data=bool(dl.strip())))
+    json.dump(dict(TCCON=tc,COCCON=cc),open(f'{D}/col.json','w')); print('TCCON',len(tc),'COCCON',len(cc))
 def step_fires():
     pts=[]
     for u in ('https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv','https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv'):
@@ -411,6 +472,12 @@ def replace_data_blocks(page):
     blocks={'d-st':f'{D}/stations.json','d-oco2':f'{D}/oco2_fwd.json','d-enso':f'{D}/enso.json','d-fires':f'{D}/fires.json','d-pm':f'{D}/pm.json','d-co':f'{D}/co.json','d-firem':f'{D}/firem.json','d-ndvi2':f'{D}/ndvi2.json','d-sst':f'{D}/sst_nofile.json'}
     if os.path.exists(f'{D}/sst.json'):
         sj=json.load(open(f'{D}/sst.json')); [c.pop('file',None) for c in sj['months']]; json.dump(sj,open(f'{D}/sst_nofile.json','w'))
+    if os.path.exists(f'{D}/flux.json'):
+        fj=json.load(open(f'{D}/flux.json'))
+        if all(len(v)>50 for v in fj.values()): t=re.sub(r'<script id="d-flux" type="application/json" data-gz="1">.*?</script>',lambda m:'<script id="d-flux" type="application/json" data-gz="1">'+gz(fj)+'</script>',t,flags=re.S)
+    if os.path.exists(f'{D}/col.json'):
+        cj=json.load(open(f'{D}/col.json'))
+        if len(cj.get('TCCON',[]))>20 and len(cj.get('COCCON',[]))>20: t=re.sub(r'<script id="d-col" type="application/json">.*?</script>',lambda m:'<script id="d-col" type="application/json">'+json.dumps(cj,separators=(',',':'))+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/outlook.json'):
         t=re.sub(r'<script id="d-outlook" type="application/json">.*?</script>',lambda m:'<script id="d-outlook" type="application/json">'+open(f'{D}/outlook.json').read()+'</script>',t,flags=re.S)
     for id_,f in blocks.items():
