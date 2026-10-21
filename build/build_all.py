@@ -93,6 +93,17 @@ def step_icos():
             if not ser: continue
             sm=smeta[sid]; st=out.setdefault(sid,dict(id=sid,net='ICOS',name=sm['name'],country=sm['country'],lat=float(sm['lat']),lon=float(sm['lon']),elev=float(sm['elev']) if sm['elev'] else None,height=h,vars={}))
             st['vars'][gas]=metrics([(int(k[:4]),int(k[5:7]),v) for k,v in ser]); print(sid,gas,ser[-1],flush=True)
+    # platform / measurement tags; stations with an ICOS flask programme
+    try:
+        fl=sparql('''prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
+prefix prov: <http://www.w3.org/ns/prov#>
+select distinct ?stId where { ?dobj cpmeta:hasObjectSpec ?spec . ?spec rdfs:label ?label . ?dobj cpmeta:wasAcquiredBy/prov:wasAssociatedWith ?st . ?st cpmeta:hasStationId ?stId . filter(regex(?label,"Flask Release")) }''')
+        flask={r['stId'] for r in fl}
+    except Exception: flask=set()
+    for st in out.values():
+        h=st.get('height') or 0; e=st.get('elev') or 0
+        st['platform']='Tall tower' if h>=50 else 'Mountain station' if e>=1500 else 'Surface / coastal station'
+        st['measurement']='In-situ continuous analyser (CRDS/FTIR), ICOS ATC Level 2 + NRT'; st['flasks']=st['id'] in flask
     json.dump(out,open(f'{D}/icos.json','w'))
 
 # ---------------- OpenAQ ----------------
