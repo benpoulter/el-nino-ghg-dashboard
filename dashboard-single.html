@@ -1007,7 +1007,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
 </aside>
 
 <section class="chart" id="chart">
-  <div class="hd"><h3 id="cTitle"></h3><span class="meta" id="cMeta"></span><button class="close" id="cClose">Close</button></div>
+  <div class="hd"><h3 id="cTitle"></h3><div class="seg" id="cVar" style="margin:0;width:auto;min-width:120px"></div><span class="meta" id="cMeta"></span><button class="close" id="cClose">Close</button></div>
   <div class="stats"><div class="stat b"><b id="sLatest"></b><span id="sLatestL">latest monthly mean</span></div><div class="stat c"><b id="sAnom"></b><span>vs previous 5-yr same-month mean</span></div><div class="stat a"><b id="sDetr"></b><span>trend-adjusted anomaly</span></div><div class="stat t"><b id="sYoy"></b><span>change vs same month last year</span></div></div>
   <canvas id="cChart"></canvas>
   <div class="rgrid" id="rgrid" style="display:none"></div>
@@ -1413,8 +1413,11 @@ document.querySelectorAll('.netCk').forEach(ck=>ck.addEventListener('change',()=
 
 /* ---------- chart ---------- */
 let chart=null;
-function showChart(s){
-  const d=cur(s),V=VARS[sel[s.net]],u=V.unit,dp=V.dp; const [y,m,v]=d.latest; const lastK=Object.keys(NINO_M).sort().pop();
+let chartStation=null;
+function showChart(s,vk){
+  chartStation=s; vk=vk&&s.vars[vk]?vk:(s.vars[sel[s.net]]?sel[s.net]:Object.keys(s.vars)[0]);
+  const keys=Object.keys(s.vars);const cv=document.getElementById('cVar');cv.style.display=keys.length>1?'':'none';cv.innerHTML=keys.map(k=>`<button data-v="${k}" class="${k===vk?'on':''}">${VARS[k].label}</button>`).join('');
+  const d=s.vars[vk],V=VARS[vk],u=V.unit,dp=V.dp; const [y,m,v]=d.latest; const lastK=Object.keys(NINO_M).sort().pop();
   const el=document.getElementById('chart');const wasOpen=el.classList.contains('open');el.classList.add('open');document.body.classList.add('chartOpen');document.body.classList.remove('regionOpen');document.getElementById('rgrid').style.display='none';document.getElementById('cChart').style.display='';document.querySelector('.stats').style.display='';if(!wasOpen){const c=map.getCenter(),z=map.getZoom();map.invalidateSize();map.setView(c,z,{animate:false});}
   document.getElementById('cTitle').textContent=`${s.name} (${s.id}) — ${V.label}`;
   document.getElementById('cMeta').textContent=`${s.net==='ICOS'?'ICOS atmospheric station, in-situ hourly data aggregated to monthly means'+(s.height?`, ${s.height} m inlet`:''):s.net==='NOAA'?(d.prelimFrom?'NOAA GML surface flask monthly means, extended with preliminary in-situ monthly means':'NOAA GML surface flask, monthly means'):'OpenAQ reference-grade monitor, monthly mean of daily means'+(s.provider?` · ${s.provider}`:'')} · ${s.country||''}${(y<2026||m<10)?` · station data end ${MON[m-1]} ${y}; Niño 3.4 continues to ${lastK}`:''}${d.prelimFrom?` · values from ${d.prelimFrom} are NOAA preliminary (trends page), subject to revision`:''}${d.sens?` · ENSO sensitivity ${d.sens.slope>0?'+':''}${d.sens.slope} ${u}/°C at ${d.sens.lag}-month lag (r = ${d.sens.r})`:''}`;
@@ -1436,6 +1439,7 @@ function showChart(s){
     plugins:{legend:{labels:{color:tc,boxWidth:12,font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y==null?'–':c.dataset.yAxisID==='y2'?c.parsed.y.toFixed(1)+' °C':c.parsed.y.toFixed(dp)+' '+u)}}},
     scales:{x:{ticks:{color:tc,maxTicksLimit:12,font:{size:10}},grid:{color:gc}},y:{title:{display:true,text:`${V.label} (${u})`,color:tc},ticks:{color:tc,font:{size:10}},grid:{color:gc}},y2:{position:'right',min:-3,max:4,title:{display:true,text:'Niño 3.4 (°C)',color:'#e8930b'},ticks:{color:'#e8930b',font:{size:10}},grid:{drawOnChartArea:false}}}}});
 }
+document.getElementById('cVar').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&chartStation)showChart(chartStation,b.dataset.v);});
 document.getElementById('cClose').addEventListener('click',()=>{if(regionBoxEl){regionBoxEl.remove();regionBoxEl=null;regionRect=null;}document.getElementById('chart').classList.remove('open');document.body.classList.remove('chartOpen');document.body.classList.remove('regionOpen');const c=map.getCenter(),z=map.getZoom();map.invalidateSize();map.setView(c,z,{animate:false});});
 
 /* ---------- search ---------- */
