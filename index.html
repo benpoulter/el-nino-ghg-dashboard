@@ -1134,7 +1134,7 @@ document.querySelectorAll('.opt .hd').forEach(h=>h.addEventListener('click',e=>{
 document.getElementById('panelBtn').addEventListener('click',()=>document.getElementById('box').classList.toggle('open'));
 const boxEl=document.getElementById('box');let boxWasOpen=false;let regionOn,regionRect,regionBoxEl,regionStart;
 (function(){const ttl=document.getElementById('boxTtl');let drag=null;
-  function place(x,y){const W=innerWidth,H=innerHeight,bw=boxEl.offsetWidth,bh=boxEl.offsetHeight;x=Math.max(0,Math.min(W-bw,x));y=Math.max(56,Math.min(H-60,y));boxEl.style.left=x+'px';boxEl.style.top=y+'px';boxEl.style.right='auto';}
+  function place(x,y){const W=innerWidth,H=innerHeight,bw=boxEl.offsetWidth;x=Math.max(0,Math.min(W-bw,x));y=Math.max(56,Math.min(H-60,y));boxEl.style.left=x+'px';boxEl.style.top=y+'px';boxEl.style.right='auto';}
   ttl.addEventListener('pointerdown',e=>{if(e.target.closest('button')||innerWidth<=800)return;const r=boxEl.getBoundingClientRect();drag={dx:e.clientX-r.left,dy:e.clientY-r.top};boxEl.classList.add('dragging');ttl.setPointerCapture(e.pointerId);e.preventDefault();});
   ttl.addEventListener('pointermove',e=>{if(!drag)return;place(e.clientX-drag.dx,e.clientY-drag.dy);});
   const end=e=>{if(!drag)return;drag=null;boxEl.classList.remove('dragging');try{localStorage.setItem('layersPos',JSON.stringify({l:boxEl.style.left,t:boxEl.style.top}));}catch(_){}};
@@ -1393,7 +1393,6 @@ for(const net in NETS) for(const s of NETS[net]) items.push({t:net,n:s.name,sub:
 function countryBounds(name){const f=BORDERS.features.find(f=>f.properties.n===name); if(!f) return null; let s=90,n=-90,w=180,e=-180; const walk=c=>{if(typeof c[0]==='number'){if(c[1]<s)s=c[1];if(c[1]>n)n=c[1];if(c[0]<w)w=c[0];if(c[0]>e)e=c[0];}else c.forEach(walk);}; walk(f.geometry.coordinates); if(e-w>300){return [[s,-180],[n,180]];} return [[s,w],[n,e]];}
 const sIn=document.getElementById('searchIn'),sRes=document.getElementById('searchRes'); let hits=[],selIdx=-1;
 function goTo(h){sRes.classList.remove('open');sIn.value=h.n;sIn.blur();
-  const m=sIn.value.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
   if(h.t==='Country'){const b=countryBounds(h.n); if(b){map.fitBounds(b,{padding:[40,40],maxZoom:6});return;}}
   map.setView([h.la,h.lo],h.z||4,{animate:true}); if(h.st) setTimeout(()=>showChart(h.st),350);}
 function render(){sRes.innerHTML=hits.map((h,i)=>`<div data-i="${i}" class="${i===selIdx?'sel':''}"><span>${h.n}${h.sub?` <small>${h.sub}</small>`:''}</span><small>${h.t}</small></div>`).join('')||(sIn.value.trim().length>=2?'<div style="color:var(--text-light);cursor:default">No matches</div>':'');sRes.classList.toggle('open',sRes.innerHTML.length>0);}
@@ -1415,7 +1414,6 @@ document.getElementById('search').addEventListener('click',e=>{if(e.target!==sIn
 document.querySelector('.sbtn').addEventListener('click',()=>{sIn.focus();if(hits.length)goTo(hits[0]);});
 
 /* ---------- ENSO ---------- */
-/* NINO_M is defined with NINO_M0 near the top */
 function spark(cv,series,opts){const marks=opts.marks||[];const dpr=devicePixelRatio||1;const W=cv.clientWidth||300,H=cv.clientHeight||54;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,W,H);const vals=series.map(p=>p[1]);const lo=opts.lo??Math.min(...vals),hi=opts.hi??Math.max(...vals);const x=i=>i/(series.length-1)*W,y=v=>H-4-(v-lo)/(hi-lo)*(H-8);
   if(opts.zero!=null){const z=y(opts.zero);g.strokeStyle=dark()?'#3a4a80':'#bbb';g.beginPath();g.moveTo(0,z);g.lineTo(W,z);g.stroke();}
   if(opts.bands){for(const [a,b,c] of opts.bands){g.fillStyle=c;const y1=y(Math.min(b,hi)),y2=y(Math.max(a,lo));g.fillRect(0,y1,W,y2-y1);}}

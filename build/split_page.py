@@ -1,7 +1,7 @@
 """Split the single-file dashboard into a light shell (index.html) + data/ files for GitHub Pages.
 Usage: python3 split_page.py <single.html> <out_dir>
 The page's loaders already fall back to fetch('data/<id>.json') and data/<img>.webp|png when the inline blocks are absent."""
-import re, sys, os, gzip, base64, json
+import re, sys, os, gzip, base64
 src, out = sys.argv[1], sys.argv[2]
 t=open(src).read(); os.makedirs(os.path.join(out,'data'),exist_ok=True)
 def put(name,data,mode='w'): open(os.path.join(out,'data',name),mode).write(data)

@@ -1,6 +1,6 @@
 import os as _os, json as _json, datetime as _dt
 _MJ=_os.environ.get('MONTHS_JSON')
-import subprocess, os, re, json, base64, datetime as dt, calendar, numpy as np
+import subprocess, os, re, json, datetime as dt, calendar, numpy as np
 from PIL import Image
 from concurrent.futures import ThreadPoolExecutor
 W='https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&CRS=EPSG:4326&BBOX=-90,-180,90,180&FORMAT=image/png'
