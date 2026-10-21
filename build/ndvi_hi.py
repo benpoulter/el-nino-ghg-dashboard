@@ -1,4 +1,4 @@
-import os as _os, json as _json, datetime as _dt
+import os as _os, json as _json
 _MJ=_os.environ.get('MONTHS_JSON')
 import subprocess, os, re, json, numpy as np
 from PIL import Image
