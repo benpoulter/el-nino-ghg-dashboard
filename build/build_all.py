@@ -174,7 +174,12 @@ def step_stations():
         if add:
             d.update(metrics([tuple(x) for x in d['series']+add])); d['prelimFrom']=f"{add[0][0]}-{add[0][1]:02d}"
     icos=json.load(open(f'{D}/icos.json')); aq=json.load(open(f'{D}/aq.json'))
-    json.dump(dict(icos=list(icos.values()),noaa=list(noaa.values()),aq=aq),open(f'{D}/stations.json','w'))
+    socat=json.load(open(f'{D}/socat.json')) if os.path.exists(f'{D}/socat.json') else None
+    if socat is None:
+        try:
+            mm=re.search(r'<script id="d-st" type="application/json" data-gz="1">(.*?)</script>',open(PAGE).read(),re.S); socat=json.loads(gzip.decompress(base64.b64decode(mm.group(1)))).get('socat',[])
+        except Exception: socat=[]
+    json.dump(dict(icos=list(icos.values()),noaa=list(noaa.values()),aq=aq,socat=socat),open(f'{D}/stations.json','w'))
 
 # ---------------- OCO-2 Fwd_FP / Lite 16-day windows ----------------
 def step_oco2():
@@ -378,6 +383,26 @@ def step_registries():
     for x in tc:
         if cnt[x['id']]>1: nn[x['id']]=nn.get(x['id'],0)+1; x['id']=f"{x['id']}{nn[x['id']]:02d}"
     json.dump(dict(TCCON=tc,COCCON=ccu),open(f'{D}/col.json','w')); print('TCCON',len(tc),'COCCON',len(ccu))
+def step_socat():
+    """SOCAT monthly 1-degree gridded fCO2 (annual release) -> 4-degree cells with monthly series since 2010."""
+    import netCDF4 as nc, zipfile, glob
+    os.makedirs('socat',exist_ok=True)
+    if not glob.glob('socat/*.nc'):
+        sh('curl -sL -m 900 -o socat/monthly.nc.zip https://socat.info/socat_files/v2026/SOCATv2026_tracks_gridded_monthly.nc.zip')
+        zipfile.ZipFile('socat/monthly.nc.zip').extractall('socat')
+    d=nc.Dataset(glob.glob('socat/*.nc')[0]); t=d.variables['tmnth']; dates=nc.num2date(t[:],t.units); i0=[i for i,x in enumerate(dates) if x.year>=2010][0]
+    lat=d.variables['ylat'][:]; lon=d.variables['xlon'][:]
+    f=np.ma.filled(d.variables['fco2_ave_weighted'][i0:].astype(np.float32),np.nan); n=np.ma.filled(d.variables['fco2_count_nobs'][i0:],0).astype(np.float32)
+    C=4; out=[]
+    for iy in range(180//C):
+        for ix in range(360//C):
+            sub=f[:,iy*C:(iy+1)*C,ix*C:(ix+1)*C]; subn=n[:,iy*C:(iy+1)*C,ix*C:(ix+1)*C]
+            w=np.where(np.isfinite(sub),subn,0); sm=np.where(np.isfinite(sub),sub*subn,0); tot=w.sum(axis=(1,2)); m=np.where(tot>0,sm.sum(axis=(1,2))/np.maximum(tot,1),np.nan)
+            if np.isfinite(m).sum()<36: continue
+            ser=[(int(dates[i0+k].year),int(dates[i0+k].month),round(float(m[k]),1)) for k in range(len(m)) if np.isfinite(m[k])]
+            clat=float(lat[iy*C:(iy+1)*C].mean()); clon=float(lon[ix*C:(ix+1)*C].mean())
+            out.append(dict(id=f"S{iy:02d}{ix:02d}",name=f"SOCAT cell {abs(clat):.0f}°{'N' if clat>=0 else 'S'} {abs(clon):.0f}°{'E' if clon>=0 else 'W'}",net='SOCAT',country='',lat=round(clat,2),lon=round(clon,2),nmonths=int(np.isfinite(m).sum()),nobs=int(tot.sum()),vars={'fco2':metrics(ser)}))
+    json.dump(out,open(f'{D}/socat.json','w')); print('SOCAT cells',len(out))
 def step_fires():
     pts=[]
     for u in ('https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv','https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv'):

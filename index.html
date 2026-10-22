@@ -889,7 +889,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
 <div class="showl" id="showl">Show layers</div>
 <div class="lefttools"><button id="lAbout" title="About this dashboard"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button><button id="lStats" title="Summary statistics"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M7 16V9M12 16V4M17 16v-6"/></svg></button><button id="lList" title="Station list"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button><button id="lDl" title="Download data"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M4 19h16"/></svg></button></div>
 <div class="tools"><button id="tGlobe" title="Global view"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></button><button id="tIn" title="Zoom in"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></button><button id="tOut" title="Zoom out"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/></svg></button><div class="gap"></div><button id="tRegion" title="Region comparison: drag a box on the map"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 2"><rect x="4" y="5" width="16" height="14"/></svg></button><button id="tLayers" title="Layers panel"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17.5l9 5 9-5"/></svg></button></div>
-<div class="slist" id="slist"><div class="ttl">Stations<button id="slistClose">×</button></div><div class="ctl"><select id="slNet"><option value="ghg">ICOS + NOAA (greenhouse gases)</option><option value="ICOS">ICOS</option><option value="NOAA">NOAA</option><option value="OpenAQ">OpenAQ (PM₂.₅)</option><option value="all">All networks</option></select><select id="slSort"><option value="desc">Highest first</option><option value="asc">Lowest first</option><option value="name">By name</option></select><input id="slQ" type="search" placeholder="filter…" style="flex:1;min-width:80px"></div><div class="rows" id="slRows"></div></div>
+<div class="slist" id="slist"><div class="ttl">Stations<button id="slistClose">×</button></div><div class="ctl"><select id="slNet"><option value="ghg">ICOS + NOAA (greenhouse gases)</option><option value="ICOS">ICOS</option><option value="NOAA">NOAA</option><option value="OpenAQ">OpenAQ (PM₂.₅)</option><option value="SOCAT">SOCAT (fCO₂)</option><option value="all">All networks</option></select><select id="slSort"><option value="desc">Highest first</option><option value="asc">Lowest first</option><option value="name">By name</option></select><input id="slQ" type="search" placeholder="filter…" style="flex:1;min-width:80px"></div><div class="rows" id="slRows"></div></div>
 <button class="statsBtn" id="statsBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M7 16V9M12 16V4M17 16v-6"/></svg>Summary Statistics</button>
 <div class="stats-p" id="statsP"><div class="ttl">Summary Statistics<button id="statsClose">×</button></div><table id="statsT"></table></div>
 <div class="foot"><a href="https://sparkclimate.org" target="_blank" rel="noopener">Spark Climate Solutions</a><a href="#" id="footAbout">Data providers &amp; methods</a><a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">Contact: ben@sparkclimate.org</a></div>
@@ -918,6 +918,13 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
     <div class="body">
       <div class="sub" id="varsOpenAQ"></div>
       <p class="note">Reference-grade monitors, monthly mean of daily means, one site per 0.75° cell.</p>
+    </div>
+  </div>
+  <div class="opt" data-net="SOCAT">
+    <div class="hd"><input type="checkbox" class="netCk" data-net="SOCAT"><svg class="sym" viewBox="0 0 14 14"><polygon points="7,1.5 12,4.5 12,9.5 7,12.5 2,9.5 2,4.5" fill="#2c85d7" stroke="#fff" stroke-width="1.2"/></svg><span class="lbl">SOCAT surface-ocean fCO₂<small id="nSo"></small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="sub" id="varsSOCAT"></div>
+      <p class="note">Ship and buoy fCO₂ from the Surface Ocean CO₂ Atlas (SOCAT v2026, 1° monthly gridded product), aggregated to 4° cells with at least 36 months of data since 2010. Each hexagon is one cell; click for its monthly series. Most cells end in 2025, so they are hatched.</p>
     </div>
   </div>
   <h2 style="margin-top:14px">Networks <span style="font-weight:400;letter-spacing:0;text-transform:none">(locations only — no time series)</span></h2>
@@ -1072,6 +1079,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   <tr><td>ENSO outlook</td><td>NOAA CPC ENSO Diagnostic Discussion: alert-system status and the synopsis sentence, scraped from the discussion page at build time (issued monthly on the second Thursday).</td><td>Latest issue date shown in the card.</td></tr>
   <tr><td>FLUXNET tower layers</td><td><a href="https://fluxnet.org/" target="_blank" rel="noopener">FLUXNET</a> site registry (FLUXNET2015 and FLUXNET-CH4 v1.0 site lists from the AmeriFlux/FLUXNET site API) with PI, tower start/end years, elevation and Köppen class scraped from each site’s FLUXNET page; IGBP vegetation class from the site list. “Active” means the FLUXNET page lists data collection to “Present”. Towers are clustered on the map until zoom level 6.</td><td><span class="cnt" data-cnt="fx">212</span> FLUXNET2015 and <span class="cnt" data-cnt="ch">81</span> FLUXNET-CH4 towers (registry fetched 21 Oct 2026).</td></tr>
   <tr><td>TCCON and COCCON layers</td><td><a href="https://tccondata.org/" target="_blank" rel="noopener">TCCON</a> site locations and data spans from tccondata.org (GGG2020 public data); <a href="https://www.coccon.kit.edu/" target="_blank" rel="noopener">COCCON</a> operational, COCCON-Spain and campaign sites with institution, EM27/SUN serial number and repository data periods from the KIT COCCON data-repository page. TCCON “active” means data published within the last ~13 months.</td><td><span class="cnt" data-cnt="tc">37</span> TCCON and <span class="cnt" data-cnt="cc">57</span> COCCON sites (registry fetched 21 Oct 2026).</td></tr>
+  <tr><td>SOCAT surface-ocean fCO₂ (hexagons)</td><td><a href="https://socat.info/" target="_blank" rel="noopener">Surface Ocean CO₂ Atlas</a> v2026, 1° monthly gridded product (<em>fco2_ave_weighted</em>, cruise-weighted mean fugacity of CO₂ in surface seawater, µatm; Bakker et al. 2016). Aggregated here to 4° cells, weighting by observation count, keeping cells with ≥ 36 months since 2010; anomaly definitions as for the stations. SOCAT is released annually, so the series end in December 2025 and the cells are hatched as stale.</td><td><span class="cnt" data-cnt="so">461</span> cells, 2010 – Dec 2025.</td></tr>
   <tr><td>Coastlines</td><td><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> 1:110m land polygons (public domain).</td><td>—</td></tr></table>
 
   <h3>How the station values are aggregated</h3>
@@ -1115,7 +1123,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   <h3>Contact</h3>
   <p>Questions, corrections or requests for additional data layers: <a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">ben@sparkclimate.org</a> (Ben Poulter, Spark Climate Solutions).</p>
   <h3>Citation</h3>
-  <p>ICOS RI (2026), ICOS Atmosphere Level 2 and NRT data, Carbon Portal, <a href="https://data.icos-cp.eu/" target="_blank" rel="noopener">data.icos-cp.eu</a>. Lan, X., et al., NOAA GML Carbon Cycle Cooperative Global Air Sampling Network. OCO-2 Science Team (2025/2026), OCO-2 Level 2 bias-corrected XCO₂ forward-processing (OCO2_L2_Fwd_FP v11.2/v11.3) and retrospective Lite (OCO2_L2_Lite_FP v11.3r) products, NASA GES DISC. MODIS Terra Vegetation Indices, NASA LP DAAC, via NASA GIBS. Copernicus Land Monitoring Service (2026), Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3, European Environment Agency / VITO, via the Copernicus Data Space Ecosystem. NASA FIRMS VIIRS 375 m NRT. Keller, C. A., et al. (2021), Description of the NASA GEOS Composition Forecast modeling system GEOS-CF v1.0, J. Adv. Model. Earth Syst. OpenAQ (2026), openaq.org. Built by Spark Climate Solutions.</p>
+  <p>ICOS RI (2026), ICOS Atmosphere Level 2 and NRT data, Carbon Portal, <a href="https://data.icos-cp.eu/" target="_blank" rel="noopener">data.icos-cp.eu</a>. Lan, X., et al., NOAA GML Carbon Cycle Cooperative Global Air Sampling Network. OCO-2 Science Team (2025/2026), OCO-2 Level 2 bias-corrected XCO₂ forward-processing (OCO2_L2_Fwd_FP v11.2/v11.3) and retrospective Lite (OCO2_L2_Lite_FP v11.3r) products, NASA GES DISC. MODIS Terra Vegetation Indices, NASA LP DAAC, via NASA GIBS. Copernicus Land Monitoring Service (2026), Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3, European Environment Agency / VITO, via the Copernicus Data Space Ecosystem. NASA FIRMS VIIRS 375 m NRT. Keller, C. A., et al. (2021), Description of the NASA GEOS Composition Forecast modeling system GEOS-CF v1.0, J. Adv. Model. Earth Syst. OpenAQ (2026), openaq.org. Bakker, D. C. E., et al. (2016), A multi-decade record of high-quality fCO₂ data in version 3 of the Surface Ocean CO₂ Atlas (SOCAT), Earth Syst. Sci. Data 8, 383–413; SOCAT version 2026. Built by Spark Climate Solutions.</p>
 
  </div>
 </div>
@@ -1132,10 +1140,10 @@ const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,S
 NDVI.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('ndvi-img-'+i);return el?el.textContent:'data/ndvi-img-'+i+'.webp';}}));
 S3N.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('s3-img-'+i);return el?el.textContent:'data/s3-img-'+i+'.png';}}));
 SST.months.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('sst-img-'+i);return el?el.textContent:'data/sst-img-'+i+'.webp';}}));
-const NETS={ICOS:ST.icos,NOAA:ST.noaa,OpenAQ:ST.aq};
+const NETS={ICOS:ST.icos,NOAA:ST.noaa,OpenAQ:ST.aq,SOCAT:ST.socat||[]};
 const dark=()=>{const t=document.documentElement.getAttribute('data-theme');return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;};
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const VARS={co2:{label:'CO₂',unit:'ppm',dp:2,raw:[0,12],detr:[-3,3],yoy:[0,6],sens:[-1.5,1.5]},ch4:{label:'CH₄',unit:'ppb',dp:1,raw:[0,60],detr:[-30,30],yoy:[0,30],sens:[-8,8]},pm25:{label:'PM₂.₅',unit:'µg/m³',dp:1,raw:[-20,20],detr:[-20,20],yoy:[-20,20],sens:[-5,5],div:true}};
+const VARS={co2:{label:'CO₂',unit:'ppm',dp:2,raw:[0,12],detr:[-3,3],yoy:[0,6],sens:[-1.5,1.5]},ch4:{label:'CH₄',unit:'ppb',dp:1,raw:[0,60],detr:[-30,30],yoy:[0,30],sens:[-8,8]},pm25:{label:'PM₂.₅',unit:'µg/m³',dp:1,raw:[-20,20],detr:[-20,20],yoy:[-20,20],sens:[-5,5],div:true},fco2:{label:'fCO₂',unit:'µatm',dp:1,raw:[0,25],detr:[-15,15],yoy:[0,12],sens:[-10,10]}};
 const SEQ=[[254,240,217],[253,204,138],[252,141,89],[227,74,51],[122,1,119]];
 const DIV=[[33,102,172],[146,197,222],[247,247,247],[244,165,130],[178,24,43]];
 function ramp(t,stops){t=Math.max(0,Math.min(1,t));const i=Math.min(stops.length-2,Math.floor(t*(stops.length-1)));const f=t*(stops.length-1)-i;const a=stops[i],b=stops[i+1];return `rgb(${a.map((c,k)=>Math.round(c+(b[k]-c)*f)).join(',')})`;}
@@ -1155,7 +1163,7 @@ function ensoSens(d){const g={};const by={};for(const p of d.series)by[`${p[0]}-
     const n=xs.length;if(n<30)continue;const mx=xs.reduce((a,b)=>a+b,0)/n,my=ys.reduce((a,b)=>a+b,0)/n;let sxy=0,sxx=0,syy=0;for(let i=0;i<n;i++){sxy+=(xs[i]-mx)*(ys[i]-my);sxx+=(xs[i]-mx)**2;syy+=(ys[i]-my)**2;}const r=sxy/Math.sqrt(sxx*syy||1),slope=sxy/(sxx||1);if(!best||Math.abs(r)>Math.abs(best.r))best={lag,r:+r.toFixed(2),slope:+slope.toFixed(2),n};}
   return best;}
 for(const net in NETS) for(const s of NETS[net]) for(const k in s.vars) s.vars[k].sens=ensoSens(s.vars[k]);
-const sel={ICOS:'co2',NOAA:'co2',OpenAQ:'pm25'};  // selected variable per network
+const sel={ICOS:'co2',NOAA:'co2',OpenAQ:'pm25',SOCAT:'fco2'};  // selected variable per network
 let anomMode='raw';
 
 /* ---------- expanders ---------- */
@@ -1356,15 +1364,16 @@ const frpSl=document.getElementById('frpSl');frpSl.addEventListener('input',()=>
 document.getElementById('ckFire').addEventListener('change',e=>{e.target.checked?fireLayer.addTo(map):map.removeLayer(fireLayer);});
 
 /* ---------- stations ---------- */
-const groups={ICOS:L.layerGroup().addTo(map),NOAA:L.layerGroup().addTo(map),OpenAQ:L.layerGroup()};
-const counts={ICOS:'nIcos',NOAA:'nNoaa',OpenAQ:'nAq'};
+const groups={ICOS:L.layerGroup().addTo(map),NOAA:L.layerGroup().addTo(map),OpenAQ:L.layerGroup(),SOCAT:L.layerGroup()};
+const counts={ICOS:'nIcos',NOAA:'nNoaa',OpenAQ:'nAq',SOCAT:'nSo'};
 function cur(s){return s.vars[sel[s.net]];}
 const HATCH=(id,w)=>`<defs><pattern id="${id}" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="3" fill="${w}"/><line x1="0" y1="0" x2="0" y2="3" stroke="#142161" stroke-width="1.3"/></pattern></defs>`;
 let hid=0;
 const tri=(f,st)=>{const id='h'+(hid++);return L.divIcon({className:'',html:`<svg width="18" height="18" viewBox="0 0 18 18" style="overflow:visible">${st?HATCH(id,f):''}<path d="M9 1.5 17 16H1Z" fill="${st?`url(#${id})`:f}" stroke="#142161" stroke-width="1.2"/></svg>`,iconSize:[18,18],iconAnchor:[9,9]});};
 const sq=(f,st)=>{const id='h'+(hid++);return L.divIcon({className:'',html:`<svg width="9" height="9" viewBox="0 0 9 9" style="overflow:visible">${st?HATCH(id,f):''}<rect x="0.5" y="0.5" width="8" height="8" rx="1.2" fill="${st?`url(#${id})`:f}" stroke="rgba(20,33,97,.55)" stroke-width="1"/></svg>`,iconSize:[9,9],iconAnchor:[4.5,4.5]});};
+const hexi=(f,st)=>{const id='h'+(hid++);return L.divIcon({className:'',html:`<svg width="13" height="13" viewBox="0 0 14 14" style="overflow:visible">${st?HATCH(id,f):''}<polygon points="7,0.8 12.6,4 12.6,10 7,13.2 1.4,10 1.4,4" fill="${st?`url(#${id})`:f}" stroke="#142161" stroke-width="1"/></svg>`,iconSize:[13,13],iconAnchor:[6.5,6.5]});};
 const circ=(f,st)=>{const id='h'+(hid++);return L.divIcon({className:'',html:`<svg width="16" height="16" viewBox="0 0 16 16" style="overflow:visible">${st?HATCH(id,f):''}<circle cx="8" cy="8" r="7" fill="${st?`url(#${id})`:f}" stroke="#142161" stroke-width="1.2"/></svg>`,iconSize:[16,16],iconAnchor:[8,8]});};
-const STALE_BEFORE=[2026,9];
+const STALE_BEFORE=(()=>{let b=[0,0];for(const s of ST.icos)for(const k in s.vars){const [y,m]=s.vars[k].latest;if(y>b[0]||(y===b[0]&&m>b[1]))b=[y,m];}let y=b[0],m=b[1]-1;if(m<1){m=12;y--;}return [y,m];})();
 function isStale(s){const d=cur(s);if(!d)return false;const [y,m]=d.latest;return y<STALE_BEFORE[0]||(y===STALE_BEFORE[0]&&m<STALE_BEFORE[1]);}
 
 function colorOf(s){
@@ -1376,7 +1385,7 @@ function popup(s){const d=cur(s),V=VARS[sel[s.net]];const [y,m,v]=d.latest;const
 function buildNet(net){
   const g=groups[net]; g.clearLayers(); let n=0;
   for(const s of NETS[net]){ if(!cur(s)) continue; n++; const c=colorOf(s);
-    const mk=L.marker([s.lat,s.lon],{pane:'stations',icon:(net==='ICOS'?circ:net==='NOAA'?tri:sq)(c,isStale(s))});
+    const mk=L.marker([s.lat,s.lon],{pane:'stations',icon:(net==='ICOS'?circ:net==='NOAA'?tri:net==='SOCAT'?hexi:sq)(c,isStale(s))});
     mk.bindTooltip(popup(s),{sticky:true}).on('click',()=>showChart(s)); g.addLayer(mk); }
   document.getElementById(counts[net]).textContent=`${n} sites · ${VARS[sel[net]].label}`;
 }
@@ -1428,7 +1437,7 @@ function showChart(s,vk){
   const d=s.vars[vk],V=VARS[vk],u=V.unit,dp=V.dp; const [y,m,v]=d.latest; const lastK=Object.keys(NINO_M).sort().pop();
   const el=document.getElementById('chart');const wasOpen=el.classList.contains('open');el.classList.add('open');document.body.classList.add('chartOpen');document.body.classList.remove('regionOpen');document.getElementById('rgrid').style.display='none';document.getElementById('cChart').style.display='';document.querySelector('.stats').style.display='';if(!wasOpen){const c=map.getCenter(),z=map.getZoom();map.invalidateSize();map.setView(c,z,{animate:false});}
   document.getElementById('cTitle').textContent=`${s.name} (${s.id}) — ${V.label}`;
-  document.getElementById('cMeta').textContent=`${s.net==='ICOS'?`ICOS ${s.platform?s.platform.toLowerCase():'atmospheric station'}, in-situ continuous analyser, hourly data aggregated to monthly means`+(s.height?`, ${s.height} m inlet`:'')+(s.flasks?' (site also collects flasks; not used here)':''):s.net==='NOAA'?(d.prelimFrom?'NOAA GML surface flask monthly means, extended with preliminary in-situ monthly means':'NOAA GML surface flask, monthly means'):'OpenAQ reference-grade monitor, monthly mean of daily means'+(s.provider?` · ${s.provider}`:'')} · ${s.country||''}${(y<2026||m<10)?` · station data end ${MON[m-1]} ${y}; Niño 3.4 continues to ${lastK}`:''}${d.prelimFrom?` · values from ${d.prelimFrom} are NOAA preliminary (trends page), subject to revision`:''}${d.sens?` · ENSO sensitivity ${d.sens.slope>0?'+':''}${d.sens.slope} ${u}/°C at ${d.sens.lag}-month lag (r = ${d.sens.r})`:''}`;
+  document.getElementById('cMeta').textContent=`${s.net==='ICOS'?`ICOS ${s.platform?s.platform.toLowerCase():'atmospheric station'}, in-situ continuous analyser, hourly data aggregated to monthly means`+(s.height?`, ${s.height} m inlet`:'')+(s.flasks?' (site also collects flasks; not used here)':''):s.net==='NOAA'?(d.prelimFrom?'NOAA GML surface flask monthly means, extended with preliminary in-situ monthly means':'NOAA GML surface flask, monthly means'):s.net==='SOCAT'?`SOCAT v2026 4° cell, cruise-weighted monthly mean surface-ocean fCO₂ (${s.nmonths} months, ${s.nobs.toLocaleString()} observations since 2010)`:'OpenAQ reference-grade monitor, monthly mean of daily means'+(s.provider?` · ${s.provider}`:'')} · ${s.country||''}${(`${y}-${String(m).padStart(2,'0')}`<lastK)?` · station data end ${MON[m-1]} ${y}; Niño 3.4 continues to ${lastK}`:''}${d.prelimFrom?` · values from ${d.prelimFrom} are NOAA preliminary (trends page), subject to revision`:''}${d.sens?` · ENSO sensitivity ${d.sens.slope>0?'+':''}${d.sens.slope} ${u}/°C at ${d.sens.lag}-month lag (r = ${d.sens.r})`:''}`;
   document.getElementById('sLatest').textContent=v.toFixed(dp)+' '+u;document.getElementById('sLatestL').textContent=`${MON[m-1]} ${y} monthly mean`;
   const f=x=>x==null?'n/a':(x>0?'+':'')+x.toFixed(dp)+' '+u;
   document.getElementById('sAnom').textContent=f(d.anom);document.getElementById('sDetr').textContent=f(d.detr);document.getElementById('sYoy').textContent=f(d.yoy);
@@ -1528,7 +1537,7 @@ function showRegion(b){const el=document.getElementById('chart');el.classList.ad
 
 /* ---------- permalink ---------- */
 let hashBusy=false;
-updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`t=${curTab}`,`x=${['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
+updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ','SOCAT'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`t=${curTab}`,`x=${['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
 map.on('moveend',updateHash);
 map.on('move zoom resize',()=>{if(regionBoxEl&&regionRect){const a=map.latLngToContainerPoint(regionRect.getNorthWest()),b2=map.latLngToContainerPoint(regionRect.getSouthEast());regionBoxEl.style.left=Math.min(a.x,b2.x)+'px';regionBoxEl.style.top=Math.min(a.y,b2.y)+'px';regionBoxEl.style.width=Math.abs(a.x-b2.x)+'px';regionBoxEl.style.height=Math.abs(a.y-b2.y)+'px';}});
 function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;const q={};h.split('&').forEach(kv=>{const [k,v]=kv.split('=');q[k]=decodeURIComponent(v||'');});
@@ -1537,7 +1546,7 @@ function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;co
   if(q.i!=null&&SL[baseMode]){const el=document.getElementById(SL[baseMode].el);el.value=Math.min(+el.max,Math.max(0,+q.i));syncDates(baseMode);}
   if(q.m&&document.querySelector(`#anomMode button[data-m=${q.m}]`)){anomMode=q.m;document.querySelectorAll('#anomMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.m));}
   if(q.g){const [a,b]=q.g.split(',');if(VARS[a]){sel.ICOS=a;}if(VARS[b]){sel.NOAA=b;}document.querySelectorAll('input[name=varICOS]').forEach(r=>r.checked=r.value===sel.ICOS);document.querySelectorAll('input[name=varNOAA]').forEach(r=>r.checked=r.value===sel.NOAA);}
-  if(q.s){['ICOS','NOAA','OpenAQ'].forEach((n,i)=>{const ck=document.querySelector(`.netCk[data-net=${n}]`);const on=q.s[i]!=='0';if(ck.checked!==on){ck.checked=on;on?groups[n].addTo(map):map.removeLayer(groups[n]);}});}
+  if(q.s){['ICOS','NOAA','OpenAQ','SOCAT'].forEach((n,i)=>{const ck=document.querySelector(`.netCk[data-net=${n}]`);const on=q.s[i]==='1'||(q.s[i]===undefined&&ck.checked);if(ck.checked!==on){ck.checked=on;on?groups[n].addTo(map):map.removeLayer(groups[n]);}});}
   if(q.t==='bases'||q.t==='sites')setTab(q.t);
   if(q.x){['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON'].forEach((n,i)=>{const ck=document.querySelector(`.fluxCk[data-net="${n}"]`);const on=q.x[i]==='1';if(ck.checked!==on){ck.checked=on;on?fluxGroups[n].addTo(map):map.removeLayer(fluxGroups[n]);}});}
   if(q.f==='0'){document.getElementById('ckFire').checked=false;if(map.hasLayer(fireLayer))map.removeLayer(fireLayer);}else if(q.f==='1'){document.getElementById('ckFire').checked=true;if(!map.hasLayer(fireLayer))fireLayer.addTo(map);}
@@ -1604,6 +1613,7 @@ function fillAsOf(){const ym=(y,m)=>`${MON[m-1]} ${y}`;const latest=net=>{let b=
   rows.push(['ICOS stations (CO₂, CH₄)',ym(...i),`${cnt('ICOS',...i)} of ${NETS.ICOS.length} sites report that month`]);
   rows.push(['NOAA GGRN flasks (CO₂, CH₄)',ym(...n),`${cnt('NOAA',...n)} of ${NETS.NOAA.length} sites; Mauna Loa extended with preliminary data`]);
   rows.push(['OpenAQ PM₂.₅ monitors',ym(...a),`${cnt('OpenAQ',...a)} of ${NETS.OpenAQ.length} sites`]);
+  if(NETS.SOCAT.length){const so=latest('SOCAT');rows.push(['SOCAT surface-ocean fCO₂',ym(...so),`${cnt('SOCAT',...so)} of ${NETS.SOCAT.length} cells (v2026 release)`]);}
   const oc=OCO.cycles[OCO.cycles.length-1];rows.push(['OCO-2 XCO₂',fmtD(oc.end),`16-day window from ${fmtD(oc.start)}, ${oc.src.map(s=>SRC[s]||s).join(' + ')}`]);
   const nd=NDVI[NDVI.length-1];rows.push(['MODIS NDVI anomaly',ym(+nd.date.slice(0,4),+nd.date.slice(5,7)),'monthly composite']);
   const s3=S3N[S3N.length-1];rows.push(['Sentinel-3 NDVI anomaly',fmtD(s3.date),'start of the latest 10-day period']);
@@ -1617,7 +1627,7 @@ function fillAsOf(){const ym=(y,m)=>`${MON[m-1]} ${y}`;const latest=net=>{let b=
   if(ENSO.global_ch4&&ENSO.global_ch4.length){const g4=ENSO.global_ch4[ENSO.global_ch4.length-1];rows.push(['NOAA global CH₄ (growth rate)',ym(g4[0],g4[1]),'marine surface mean']);}
   document.getElementById('asofT').innerHTML='<tr><th>Layer</th><th>Latest data</th><th>Note</th></tr>'+rows.map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b></td><td>${r[2]}</td></tr>`).join('');}
 fillAsOf();
-(function(){const c={icos:NETS.ICOS.length,noaa:NETS.NOAA.length,aq:NETS.OpenAQ.length,oco:OCO.cycles.length,fx:FLUX['FLUXNET2015'].length,ch:FLUX['FLUXNET-CH4'].length,tc:COL.TCCON.length,cc:COL.COCCON.length};document.querySelectorAll('.cnt').forEach(el=>{el.textContent=(c[el.dataset.cnt]||0).toLocaleString();});})();
+(function(){const c={icos:NETS.ICOS.length,noaa:NETS.NOAA.length,aq:NETS.OpenAQ.length,so:NETS.SOCAT.length,oco:OCO.cycles.length,fx:FLUX['FLUXNET2015'].length,ch:FLUX['FLUXNET-CH4'].length,tc:COL.TCCON.length,cc:COL.COCCON.length};document.querySelectorAll('.cnt').forEach(el=>{el.textContent=(c[el.dataset.cnt]||0).toLocaleString();});})();
 (function(){const b=(()=>{let best=null;for(const net in NETS)for(const s of NETS[net])for(const k in s.vars){const [y,m]=s.vars[k].latest;if(!best||y>best[0]||(y===best[0]&&m>best[1]))best=[y,m];}return best;})();document.getElementById('liveChip').innerHTML=`<i></i>Data to ${MON[b[1]-1]} ${b[0]} · ENSO to ${fmtD(ENSO.latest.week[0])}`;})();
 /* ---------- about ---------- */
 const about=document.getElementById('about');

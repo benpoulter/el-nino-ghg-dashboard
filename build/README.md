@@ -54,3 +54,6 @@ Chromium before the workflow commits; the `refresh.yml.example` pip line install
 
 ## Registry layers
 `python3 build_all.py registries` refreshes the FLUXNET2015 / FLUXNET-CH4, TCCON and COCCON site lists (not part of the weekly `STEPS`; run it quarterly or when a network changes, then `assemble`).
+
+## SOCAT
+`python3 build_all.py socat` rebuilds the surface-ocean fCO2 cells from the SOCAT annual release (update the version in the URL each June), then `stations` and `assemble`. The weekly `stations` step carries the existing SOCAT cells forward when no new file is present.
