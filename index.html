@@ -1180,8 +1180,8 @@ function setTab(k){curTab=k;document.querySelectorAll('#tabs button').forEach(b=
 document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
 try{const lt=localStorage.getItem('layersTab');if(lt)setTab(lt);}catch(_){}let regionOn,regionRect,regionBoxEl,regionStart;
 (function(){const ttl=document.getElementById('boxTtl');let drag=null;
-  function place(x,y){const W=innerWidth,H=innerHeight,bw=boxEl.offsetWidth||340;if(!isFinite(x)||!isFinite(y)){boxEl.style.left='';boxEl.style.top='';boxEl.style.right='';return;}x=Math.max(0,Math.min(W-bw,x));y=Math.max(56,Math.min(H-120,y));boxEl.style.left=x+'px';boxEl.style.top=y+'px';boxEl.style.right='auto';}
-ensureVisible=function(){if(innerWidth<=800||!boxEl.style.left)return;const r=boxEl.getBoundingClientRect();if(r.right>innerWidth||r.left<0||r.top<56||r.top>innerHeight-120)place(parseFloat(boxEl.style.left),parseFloat(boxEl.style.top));}
+  function place(x,y){const W=innerWidth,H=innerHeight,bw=boxEl.offsetWidth||340;if(!isFinite(x)||!isFinite(y)){boxEl.style.left='';boxEl.style.top='';boxEl.style.right='';return;}x=Math.max(0,Math.min(W-bw,x));y=Math.max(56,Math.min(H-320,y));boxEl.style.left=x+'px';boxEl.style.top=y+'px';boxEl.style.right='auto';}
+ensureVisible=function(){if(innerWidth<=800||!boxEl.style.left)return;const r=boxEl.getBoundingClientRect();if(r.right>innerWidth||r.left<0||r.top<56||r.top>innerHeight-320)place(parseFloat(boxEl.style.left),parseFloat(boxEl.style.top));}
   ttl.addEventListener('pointerdown',e=>{if(e.target.closest('button')||innerWidth<=800)return;const r=boxEl.getBoundingClientRect();drag={dx:e.clientX-r.left,dy:e.clientY-r.top};boxEl.classList.add('dragging');ttl.setPointerCapture(e.pointerId);e.preventDefault();});
   ttl.addEventListener('pointermove',e=>{if(!drag)return;place(e.clientX-drag.dx,e.clientY-drag.dy);});
   const end=e=>{if(!drag)return;drag=null;boxEl.classList.remove('dragging');try{localStorage.setItem('layersPos',JSON.stringify({l:boxEl.style.left,t:boxEl.style.top}));}catch(_){}};
