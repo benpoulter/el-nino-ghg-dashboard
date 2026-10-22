@@ -1180,7 +1180,8 @@ function setTab(k){curTab=k;document.querySelectorAll('#tabs button').forEach(b=
 document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
 try{const lt=localStorage.getItem('layersTab');if(lt)setTab(lt);}catch(_){}let regionOn,regionRect,regionBoxEl,regionStart;
 (function(){const ttl=document.getElementById('boxTtl');let drag=null;
-  function place(x,y){const W=innerWidth,H=innerHeight,bw=boxEl.offsetWidth;x=Math.max(0,Math.min(W-bw,x));y=Math.max(56,Math.min(H-60,y));boxEl.style.left=x+'px';boxEl.style.top=y+'px';boxEl.style.right='auto';}
+  function place(x,y){const W=innerWidth,H=innerHeight,bw=boxEl.offsetWidth||340;if(!isFinite(x)||!isFinite(y)){boxEl.style.left='';boxEl.style.top='';boxEl.style.right='';return;}x=Math.max(0,Math.min(W-bw,x));y=Math.max(56,Math.min(H-120,y));boxEl.style.left=x+'px';boxEl.style.top=y+'px';boxEl.style.right='auto';}
+function ensureVisible(){if(innerWidth<=800||!boxEl.style.left)return;const r=boxEl.getBoundingClientRect();if(r.right>innerWidth||r.left<0||r.top<56||r.top>innerHeight-120)place(parseFloat(boxEl.style.left),parseFloat(boxEl.style.top));}
   ttl.addEventListener('pointerdown',e=>{if(e.target.closest('button')||innerWidth<=800)return;const r=boxEl.getBoundingClientRect();drag={dx:e.clientX-r.left,dy:e.clientY-r.top};boxEl.classList.add('dragging');ttl.setPointerCapture(e.pointerId);e.preventDefault();});
   ttl.addEventListener('pointermove',e=>{if(!drag)return;place(e.clientX-drag.dx,e.clientY-drag.dy);});
   const end=e=>{if(!drag)return;drag=null;boxEl.classList.remove('dragging');try{localStorage.setItem('layersPos',JSON.stringify({l:boxEl.style.left,t:boxEl.style.top}));}catch(_){}};
@@ -1190,13 +1191,13 @@ try{const lt=localStorage.getItem('layersTab');if(lt)setTab(lt);}catch(_){}let r
   addEventListener('resize',()=>{if(boxEl.style.left&&innerWidth>800)place(parseFloat(boxEl.style.left),parseFloat(boxEl.style.top));});
 })();
 document.getElementById('boxClose').addEventListener('click',()=>{boxEl.classList.add('hidden');boxEl.classList.remove('open');});
-document.getElementById('tLayers').addEventListener('click',()=>{statsP.classList.remove('open');document.getElementById('slist').classList.remove('open');if(innerWidth>800)boxEl.classList.toggle('hidden');else boxEl.classList.toggle('open');});
+document.getElementById('tLayers').addEventListener('click',()=>{statsP.classList.remove('open');document.getElementById('slist').classList.remove('open');if(innerWidth>800)boxEl.classList.toggle('hidden');else boxEl.classList.toggle('open');ensureVisible();});
 document.getElementById('tIn').addEventListener('click',()=>map.zoomIn());
 document.getElementById('tOut').addEventListener('click',()=>map.zoomOut());
 document.getElementById('tGlobe').addEventListener('click',()=>fit());
 document.getElementById('footAbout').addEventListener('click',e=>{e.preventDefault();document.getElementById('about').classList.add('open');});
 document.getElementById('lAbout').addEventListener('click',()=>document.getElementById('about').classList.add('open'));
-document.getElementById('showl').addEventListener('click',()=>{statsP.classList.remove('open');boxEl.classList.remove('hidden');boxEl.classList.add('open');});
+document.getElementById('showl').addEventListener('click',()=>{statsP.classList.remove('open');boxEl.classList.remove('hidden');boxEl.classList.add('open');ensureVisible();});
 document.getElementById('lDl').addEventListener('click',()=>{const rows=[['network','id','name','country','lat','lon','variable','year','month','value']];for(const net in NETS)for(const s of NETS[net])for(const k in s.vars)for(const p of s.vars[k].series)rows.push([net,s.id,'"'+String(s.name).replace(/"/g,'""')+'"',s.country||'',s.lat,s.lon,k,p[0],p[1],p[2]]);const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ghg_dashboard_station_monthly.csv';document.body.appendChild(a);a.click();a.remove();});
 const statsP=document.getElementById('statsP');
 function fillStats(){const rows=[];rows.push(['ENSO phase (ONI '+ENSO.latest.oni[0]+' '+ENSO.latest.oni[1]+')',ENSO.latest.phase+' '+(ENSO.latest.oni[2]>0?'+':'')+ENSO.latest.oni[2].toFixed(2)+' °C']);rows.push(['Niño 3.4 weekly anomaly, '+fmtD(ENSO.latest.week[0]),(ENSO.latest.week[2]>0?'+':'')+ENSO.latest.week[2].toFixed(1)+' °C']);const oc=OCO.cycles[OCO.cycles.length-1];rows.push(['OCO-2 XCO₂, latest 16-day window',oc.mean.toFixed(1)+' ppm']);
