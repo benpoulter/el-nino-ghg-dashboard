@@ -399,7 +399,8 @@ def step_socat():
             sub=f[:,iy*C:(iy+1)*C,ix*C:(ix+1)*C]; subn=n[:,iy*C:(iy+1)*C,ix*C:(ix+1)*C]
             w=np.where(np.isfinite(sub),subn,0); sm=np.where(np.isfinite(sub),sub*subn,0); tot=w.sum(axis=(1,2)); m=np.where(tot>0,sm.sum(axis=(1,2))/np.maximum(tot,1),np.nan)
             if np.isfinite(m).sum()<36: continue
-            ser=[(int(dates[i0+k].year),int(dates[i0+k].month),round(float(m[k]),1)) for k in range(len(m)) if np.isfinite(m[k])]
+            ser=[(int(dates[i0+k].year),int(dates[i0+k].month),round(float(m[k]),1)) for k in range(len(m)) if np.isfinite(m[k]) and 100<=m[k]<=1500]
+            if len(ser)<36: continue
             clat=float(lat[iy*C:(iy+1)*C].mean()); clon=float(lon[ix*C:(ix+1)*C].mean())
             out.append(dict(id=f"S{iy:02d}{ix:02d}",name=f"SOCAT cell {abs(clat):.0f}°{'N' if clat>=0 else 'S'} {abs(clon):.0f}°{'E' if clon>=0 else 'W'}",net='SOCAT',country='',lat=round(clat,2),lon=round(clon,2),nmonths=int(np.isfinite(m).sum()),nobs=int(tot.sum()),vars={'fco2':metrics(ser)}))
     json.dump(out,open(f'{D}/socat.json','w')); print('SOCAT cells',len(out))
