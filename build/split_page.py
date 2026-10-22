@@ -15,7 +15,7 @@ t=re.sub(r'<script id="(d-[a-z0-9]+)" type="application/json"( data-gz="1")?>(.*
 def repl_img(m):
     id_,body=m.group(1),m.group(2); mt=re.match(r'data:image/(\w+);base64,(.*)',body,re.S)
     ext={'webp':'webp','png':'png'}[mt.group(1)]; put(id_+'.'+ext,base64.b64decode(mt.group(2)),'wb'); return ''
-t=re.sub(r'<script id="((?:ndvi|s3|sst)-img-\d+)" type="text/plain">(.*?)</script>\n?',repl_img,t,flags=re.S)
+t=re.sub(r'<script id="((?:ndvi|s3|sst|chl)-img-\d+)" type="text/plain">(.*?)</script>\n?',repl_img,t,flags=re.S)
 # the s3 images are PNG but the loader expects data/s3-img-N.png, ndvi webp -> both handled by extension
 open(os.path.join(out,'index.html'),'w').write(t)
 print('shell %.2f MB, data files %d'%(os.path.getsize(os.path.join(out,'index.html'))/1e6,len(os.listdir(os.path.join(out,'data')))))
