@@ -22,6 +22,23 @@ with sync_playwright() as p:
     for v in ['oco2','pm','co','firem']:
         empty=pg.evaluate(f"()=>{{const s=document.getElementById({{oco2:'ocoSl',pm:'pmSl',co:'coSl',firem:'fmSl'}}['{v}']);return +s.max<3}}")
         if empty: errs.append(f'{v} layer has too few dates')
+    # registry layers: every site must be drawn (cluster counts + single markers >= site count)
+    pg.evaluate("()=>{const b=document.getElementById('box');b.classList.remove('hidden');b.classList.add('open');}")
+    pg.click('#tabs button[data-tab=sites]')
+    counts=pg.evaluate("()=>({F:JSON.parse(document.getElementById('d-flux')?'[]':'[]')})")
+    for net in ['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER']:
+        try:
+            pg.click(f'.fluxCk[data-net="{net}"]'); pg.wait_for_timeout(700)
+            exp=pg.evaluate(f"()=>{{const t=document.querySelector('.fluxCk[data-net=\"{net}\"]').closest('.hd').querySelector('small').textContent;return parseInt(t)||0}}")
+            got=pg.evaluate("()=>{let t=0;document.querySelectorAll('.fxc').forEach(e=>t+=+e.textContent);const singles=document.querySelectorAll('.leaflet-stations-pane svg path.leaflet-interactive').length+[...document.querySelectorAll('.leaflet-stations-pane .leaflet-marker-icon')].filter(e=>!e.querySelector('.fxc')&&e.innerHTML.includes('rotate(45 7 7)')).length;return t+singles}")
+            if exp and got<exp: errs.append(f'{net}: only {got} of {exp} sites rendered')
+            pg.click(f'.fluxCk[data-net="{net}"]'); pg.wait_for_timeout(200)
+        except Exception as e: errs.append(f'{net} layer check failed: {str(e)[:80]}')
+    # a stale saved panel position must not push the panel off screen
+    pg.evaluate("()=>localStorage.setItem('layersPos',JSON.stringify({l:'9999px',t:'-50px'}))"); pg.reload(); pg.wait_for_function("()=>!document.getElementById('splash')",timeout=60000); pg.click('#tLayers'); pg.wait_for_timeout(300)
+    r=pg.evaluate("()=>{const b=document.getElementById('box');const q=b.getBoundingClientRect();return [q.left,q.top,q.right,innerWidth,getComputedStyle(b).display]}")
+    if r[4]!='block' or r[0]<0 or r[2]>r[3]+1 or r[1]<50: errs.append(f'Layers panel off screen with stale saved position: {r}')
+    pg.evaluate("()=>localStorage.removeItem('layersPos')")
     b.close()
 if errs:
     print('PAGE TEST FAILED'); [print(' ',e) for e in errs]; sys.exit(1)

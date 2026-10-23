@@ -1318,9 +1318,9 @@ const WRAP=360;const shiftGeo=g=>JSON.parse(JSON.stringify(g),(k,v)=>Array.isArr
 function normLng(l){return l>180?l-360:l;}
 map.attributionControl.setPrefix('');
 map.createPane('globe').style.zIndex=250; map.createPane('land').style.zIndex=300; map.createPane('basemap').style.zIndex=350; map.createPane('coast').style.zIndex=360; map.createPane('fires').style.zIndex=420; map.createPane('stations').style.zIndex=450;
-const globe=L.rectangle([[-90,-180],[90,540]],{pane:'globe',stroke:false,fillColor:'#cfd3d8',fillOpacity:1,interactive:false}).addTo(map);
-const landLayer=L.geoJSON(LAND,{pane:'land',style:()=>({stroke:false,fillColor:'#e4e6e9',fillOpacity:1,interactive:false})}).addTo(map);
-const coastLayer=L.geoJSON(LAND,{pane:'coast',style:()=>({color:'#5f646b',weight:0.7,opacity:.8,fill:false,interactive:false})}).addTo(map);
+L.rectangle([[-90,-180],[90,540]],{pane:'globe',stroke:false,fillColor:'#cfd3d8',fillOpacity:1,interactive:false}).addTo(map);
+L.geoJSON(LAND,{pane:'land',style:()=>({stroke:false,fillColor:'#e4e6e9',fillOpacity:1,interactive:false})}).addTo(map);
+L.geoJSON(LAND,{pane:'coast',style:()=>({color:'#5f646b',weight:0.7,opacity:.8,fill:false,interactive:false})}).addTo(map);
 const LAND2=shiftGeo(LAND);L.geoJSON(LAND2,{pane:'land',style:()=>({stroke:false,fillColor:'#e4e6e9',fillOpacity:1,interactive:false})}).addTo(map);L.geoJSON(LAND2,{pane:'coast',style:()=>({color:'#5f646b',weight:0.7,opacity:.8,fill:false,interactive:false})}).addTo(map);
 const graticule=L.layerGroup().addTo(map);
 for(let lat=-60;lat<=60;lat+=30) graticule.addLayer(L.polyline([[lat,-180],[lat,180]],{pane:'coast',color:'#3b3f45',opacity:.1,weight:1,interactive:false}));
@@ -1328,7 +1328,6 @@ for(let lon=-180;lon<=180;lon+=30) graticule.addLayer(L.polyline([[-90,lon],[90,
 function fit(){map.setMinZoom(0);const z=map.getBoundsZoom([[-90,-180],[90,180]],true);map.setMinZoom(z);map.setView([12,10],z,{animate:false});}
 fit();
 map.on('resize',()=>{const z=map.getZoom();map.setMinZoom(0);const fz=map.getBoundsZoom([[-90,-180],[90,180]],true);map.setMinZoom(fz);if(z<fz)map.setZoom(fz);});
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{});
 
 /* ---------- country borders and names ---------- */
 map.createPane('labels').style.zIndex=440;
