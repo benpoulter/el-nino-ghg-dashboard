@@ -1243,7 +1243,7 @@ document.getElementById('lStats').addEventListener('click',toggleStats);
 document.getElementById('statsClose').addEventListener('click',()=>{statsP.classList.remove('open');if(innerWidth>800&&boxWasOpen)boxEl.classList.remove('hidden');});
 
 /* ---------- map ---------- */
-const map=L.map('map',{crs:L.CRS.EPSG4326,worldCopyJump:false,minZoom:0,maxZoom:7,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:90,zoomControl:true,attributionControl:true,maxBounds:[[-90,-180],[90,540]],maxBoundsViscosity:1.0});
+const map=L.map('map',{crs:L.CRS.EPSG4326,worldCopyJump:false,minZoom:0,maxZoom:6,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:90,zoomControl:true,attributionControl:true,maxBounds:[[-90,-180],[90,540]],maxBoundsViscosity:1.0});
 const WRAP=360;const shiftGeo=g=>JSON.parse(JSON.stringify(g),(k,v)=>Array.isArray(v)&&v.length===2&&typeof v[0]==='number'&&typeof v[1]==='number'&&Math.abs(v[0])<=180?[v[0]+WRAP,v[1]]:v);
 function normLng(l){return l>180?l-360:l;}
 map.attributionControl.setPrefix('');
@@ -1457,6 +1457,8 @@ function nearestHtml(lat,lon){const b=nearestStation(lat,lon);if(!b)return '';re
 function ocoAtHtml(lat,lon){const i=+ocoSl.value,c=OCO.cycles[i];const v=cellVal(cached('oco'+i,()=>decode16(c.b64)),OCO.nx,OCO.ny,-32768,10,lat,lon,90,-90,-180);return `<br>OCO-2 XCO₂ here, ${fmtD(c.start)}–${fmtD(c.end)}: <b>${v==null?'no soundings in cell':v.toFixed(1)+' ppm'}</b>`;}
 document.addEventListener('click',e=>{const a=e.target.closest('.nearLink');if(!a)return;e.preventDefault();const s=NETS[a.dataset.net].find(x=>String(x.id)===a.dataset.id);if(s){map.closePopup();map.setView([s.lat,s.lon],Math.max(map.getZoom(),4),{animate:true});setTimeout(()=>showChart(s),350);}});
 
+/* Leaflet.markercluster 1.5.3 skips markers attached to the top-level cluster when the map's minZoom is fractional (it uses getMinZoom()-1 without flooring); patch to floor it. */
+(function(){const orig=L.MarkerCluster.prototype._recursivelyAddChildrenToMap;L.MarkerCluster.prototype._recursivelyAddChildrenToMap=function(startPos,zoomLevel,bounds){const m=this._group._map;const g=m.getMinZoom;m.getMinZoom=function(){return Math.floor(g.call(m));};try{return orig.call(this,startPos,zoomLevel,bounds);}finally{m.getMinZoom=g;}};})();
 /* ---------- FLUXNET tower layers (clustered) ---------- */
 const fluxGroups={};
 function fluxPopup(s,net){const act=s.active===true?'<span class="tag" style="background:#1b9e85">active</span>':s.active===false?'<span class="tag" style="background:#9aa5b8">inactive</span>':'';return `<div class="fxp"><b>${s.name}</b> (${s.id}) ${act}<br>${net} · ${s.country}<br>${s.lat.toFixed(4)}°, ${s.lon.toFixed(4)}°${s.elev?` · ${s.elev} m`:''}<br>PI: <b>${s.pi||'n/a'}</b><br>Established: <b>${s.began||'n/a'}</b>${s.end&&s.end!=='Present'?` · ended ${s.end}`:''}<br>Vegetation: <b>${s.veg}</b> (${s.igbp})${s.climate?` · Köppen ${s.climate}`:''}<br>Data years in ${net}: ${s.years||'n/a'}<br><a href="${s.url}" target="_blank" rel="noopener" style="color:var(--blue)">Site page ↗</a></div>`;}
