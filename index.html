@@ -970,7 +970,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   </div>
   <div class="tab" id="tab-bases" style="display:none">
   <div class="enso" id="ensoCard"></div>
-  <h2>Basemap · Vegetation</h2>
+  <h2>Basemap · Land &amp; vegetation</h2>
   <div class="opt" data-base="ndvi">
     <div class="hd"><input type="radio" name="base" value="ndvi" checked><span class="lbl">MODIS NDVI anomaly<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
     <div class="body">
@@ -985,6 +985,14 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
       <div class="slider"><input type="range" id="s3Sl" min="0" max="0" value="0"><div class="lab"><span>Period</span><b id="s3Date"></b></div></div>
       <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#8c510a,#f5f5f5,#01663c)"></div><div class="lab2"><span>−0.2 browner</span><span>0</span><span>+0.2 greener</span></div></div>
       <p class="note" id="s3Note"></p>
+    </div>
+  </div>
+  <div class="opt" data-base="glwd">
+    <div class="hd"><input type="radio" name="base" value="glwd"><span class="lbl">Wetlands (GLWD v2)<small>static</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="seg" id="glwdMode"><button data-m="frac" class="on">Wetland fraction</button><button data-m="class">Dominant class</button></div>
+      <div class="legend" id="glwdLeg"></div>
+      <p class="note" id="glwdNote"></p>
     </div>
   </div>
   <h2>Basemap · GHG and air quality</h2>
@@ -1108,6 +1116,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   <tr><td>Chlorophyll anomaly basemap</td><td>NASA OceanColor VIIRS NOAA-20 Level-3 monthly chlorophyll-a (9 km, <em>chlor_a</em>; NRT files for recent months), log₁₀-averaged to 0.25°; anomaly = log₁₀ of this month over the 2021–2025 same-month mean (a ±0.3 scale spans halving to doubling).</td><td>Oct 2025 – Sep 2026, monthly.</td></tr>
   <tr><td>BGC-Argo floats</td><td><a href="https://argo.ucsd.edu/" target="_blank" rel="noopener">Argo</a> GDAC synthetic-profile index: latest profile position of every float with biogeochemical sensors that reported in the two years before the index was fetched (SOCCOM, GO-BGC, Euro-Argo and others). Float pages link to the Euro-Argo fleet monitor.</td><td><span class="cnt" data-cnt="bg">1,338</span> floats (index fetched 22 Oct 2026).</td></tr>
   <tr><td>Other flux towers</td><td>Eddy-covariance CO₂/CH₄ sites not in FLUXNET, with metadata supplied directly by the site teams (<span class="cnt" data-cnt="ot">2</span> sites: Inirida, Colombia and Mopologoma, Uganda — tropical peat swamps, PIs Juan Benavides, Frank Kansiime and Angela Gallego-Sala). Kept in the page as a small JSON list (<code>d-other</code>) that can be extended by hand.</td><td>Registry only; no time series yet.</td></tr>
+  <tr><td>Wetlands (GLWD v2) basemap</td><td><a href="https://doi.org/10.6084/m9.figshare.28519994" target="_blank" rel="noopener">Global Lakes and Wetlands Database v2.0</a> (Lehner et al. 2025, ESSD 17, 2277–2313; CC BY 4.0), <em>combined classes</em> grids at 15 arc-seconds: total wetland area percent averaged to 0.0625° for the fraction map, and the main-class grid resampled by mode for the dominant-class map (the class shown is the majority class of the cell, so small wetlands inside dryland cells do not appear in that view but do count in the fraction). Readouts use 0.25° grids.</td><td>Static (1990–2020 reference period); no refresh needed.</td></tr>
   <tr><td>Coastlines</td><td><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> 1:110m land polygons (public domain).</td><td>—</td></tr></table>
 
   <h3>How the station values are aggregated</h3>
@@ -1151,7 +1160,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   <h3>Contact</h3>
   <p>Questions, corrections or requests for additional data layers: <a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">ben@sparkclimate.org</a> (Ben Poulter, Spark Climate Solutions).</p>
   <h3>Citation</h3>
-  <p>ICOS RI (2026), ICOS Atmosphere Level 2 and NRT data, Carbon Portal, <a href="https://data.icos-cp.eu/" target="_blank" rel="noopener">data.icos-cp.eu</a>. Lan, X., et al., NOAA GML Carbon Cycle Cooperative Global Air Sampling Network. OCO-2 Science Team (2025/2026), OCO-2 Level 2 bias-corrected XCO₂ forward-processing (OCO2_L2_Fwd_FP v11.2/v11.3) and retrospective Lite (OCO2_L2_Lite_FP v11.3r) products, NASA GES DISC. MODIS Terra Vegetation Indices, NASA LP DAAC, via NASA GIBS. Copernicus Land Monitoring Service (2026), Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3, European Environment Agency / VITO, via the Copernicus Data Space Ecosystem. NASA FIRMS VIIRS 375 m NRT. Keller, C. A., et al. (2021), Description of the NASA GEOS Composition Forecast modeling system GEOS-CF v1.0, J. Adv. Model. Earth Syst. OpenAQ (2026), openaq.org. Bakker, D. C. E., et al. (2016), A multi-decade record of high-quality fCO₂ data in version 3 of the Surface Ocean CO₂ Atlas (SOCAT), Earth Syst. Sci. Data 8, 383–413; SOCAT version 2026. Built by Spark Climate Solutions.</p>
+  <p>ICOS RI (2026), ICOS Atmosphere Level 2 and NRT data, Carbon Portal, <a href="https://data.icos-cp.eu/" target="_blank" rel="noopener">data.icos-cp.eu</a>. Lan, X., et al., NOAA GML Carbon Cycle Cooperative Global Air Sampling Network. OCO-2 Science Team (2025/2026), OCO-2 Level 2 bias-corrected XCO₂ forward-processing (OCO2_L2_Fwd_FP v11.2/v11.3) and retrospective Lite (OCO2_L2_Lite_FP v11.3r) products, NASA GES DISC. MODIS Terra Vegetation Indices, NASA LP DAAC, via NASA GIBS. Copernicus Land Monitoring Service (2026), Normalised Difference Vegetation Index 2014-present (raster 300 m), global, 10-daily – version 3, European Environment Agency / VITO, via the Copernicus Data Space Ecosystem. NASA FIRMS VIIRS 375 m NRT. Lehner, B., et al. (2025), Mapping the world’s inland surface waters: an upgrade to the Global Lakes and Wetlands Database (GLWD v2), Earth Syst. Sci. Data 17, 2277–2313. Keller, C. A., et al. (2021), Description of the NASA GEOS Composition Forecast modeling system GEOS-CF v1.0, J. Adv. Model. Earth Syst. OpenAQ (2026), openaq.org. Bakker, D. C. E., et al. (2016), A multi-decade record of high-quality fCO₂ data in version 3 of the Surface Ocean CO₂ Atlas (SOCAT), Earth Syst. Sci. Data 8, 383–413; SOCAT version 2026. Built by Spark Climate Solutions.</p>
 
  </div>
 </div>
@@ -1163,8 +1172,8 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
 (async function(){
 async function J(id){const el=document.getElementById(id);if(!el){const r=await fetch('data/'+id+'.json');if(!r.ok)throw new Error('missing data/'+id+'.json');return r.json();}if(el.dataset.gz!=='1')return JSON.parse(el.textContent);if(!('DecompressionStream' in window)){document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;inset:0;z-index:9999;background:#fff;padding:40px;font-family:sans-serif">This dashboard needs a browser from 2023 or later (Chrome 80+, Safari 16.4+, Firefox 113+).</div>');throw new Error('no DecompressionStream');}const bin=Uint8Array.from(atob(el.textContent),c=>c.charCodeAt(0));const ds=new DecompressionStream('gzip');const w=ds.writable.getWriter();w.write(bin);w.close();const buf=await new Response(ds.readable).arrayBuffer();return JSON.parse(new TextDecoder().decode(buf));}
 const prog=(n,t)=>{const el=document.getElementById('splashBar');if(el)el.style.width=Math.round(100*n/t)+'%';};
-const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2','d-sst','d-outlook','d-flux','d-col','d-chl','d-bgc','d-other'];let done=0;
-const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,SST,OUTLOOK,FLUX,COL,CHL,BGC,OTHER]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
+const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2','d-sst','d-outlook','d-flux','d-col','d-chl','d-bgc','d-other','d-glwd'];let done=0;
+const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,SST,OUTLOOK,FLUX,COL,CHL,BGC,OTHER,GLWD]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
 NDVI.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('ndvi-img-'+i);return el?el.textContent:'data/ndvi-img-'+i+'.webp';}}));
 S3N.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('s3-img-'+i);return el?el.textContent:'data/s3-img-'+i+'.png';}}));
 SST.months.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('sst-img-'+i);return el?el.textContent:'data/sst-img-'+i+'.webp';}}));
@@ -1288,7 +1297,8 @@ const s3Sl=document.getElementById('s3Sl'); s3Sl.max=S3N.length-1; s3Sl.value=S3
 const pmSl=document.getElementById('pmSl'); pmSl.max=PM.months.length-1; pmSl.value=PM.months.length-1;
 const sstSl=document.getElementById('sstSl'); sstSl.max=SST.months.length-1; sstSl.value=SST.months.length-1;
 const chlSl=document.getElementById('chlSl'); chlSl.max=CHL.months.length-1; chlSl.value=CHL.months.length-1;
-let baseLayer=null, cmpLayer=null, baseMode='ndvi', pmMode='abs', coMode='abs', fmMode='abs', ocoMode='abs';
+let baseLayer=null, cmpLayer=null, baseMode='ndvi', pmMode='abs', coMode='abs', fmMode='abs', ocoMode='abs', glwdMode='frac';
+const glwdSrc=i=>{const el=document.getElementById('glwd-img-'+i);return el?el.textContent:'data/glwd-img-'+i+'.webp';};
 const gridCache={};function cached(key,fn){return gridCache[key]||(gridCache[key]=fn());}
 function zonal(key,a,ny,nx,band,nodata){return cached(key,()=>{const out=new Int16Array(a.length);for(let y0=0;y0<ny;y0+=band){let s=0,n=0;for(let y=y0;y<Math.min(ny,y0+band);y++)for(let x=0;x<nx;x++){const v=a[y*nx+x];if(v!==nodata){s+=v;n++;}}const m=n?s/n:0;for(let y=y0;y<Math.min(ny,y0+band);y++)for(let x=0;x<nx;x++){const k=y*nx+x;out[k]=a[k]===nodata||!n?-32768:Math.round(a[k]-m);}}return out;});}
 function ocoZonal(idx){return cached('ocoz'+idx,()=>{const a=decode16(OCO.cycles[idx].b64),ny=OCO.ny,nx=OCO.nx,band=8;const out=new Int16Array(a.length);for(let y0=0;y0<ny;y0+=band){let s=0,n=0;for(let y=y0;y<Math.min(ny,y0+band);y++)for(let x=0;x<nx;x++){const v=a[y*nx+x];if(v!==-32768){s+=v;n++;}}const m=n?s/n:0;for(let y=y0;y<Math.min(ny,y0+band);y++)for(let x=0;x<nx;x++){const k=y*nx+x;out[k]=a[k]===-32768||!n?-32768:a[k]-Math.round(m);}}return out;});}
@@ -1307,6 +1317,7 @@ function layerFor(mode,idx,forCmp){
   if(mode==='s3'){return L.imageOverlay(S3N[idx].src,[[-60,-180],[80,180]],{pane:forCmp?'basemapB':'basemap',opacity:.95,interactive:false});}
   if(mode==='pm'){const c=PM.months[idx],abs=pmMode==='abs',zn=pmMode==='zonal';const arr=zn?zonal('pmz'+idx,cached('pma'+idx,()=>decode16(c.abs)),PM.ny,PM.nx,1,-32768):decode16(abs?c.abs:c.anom);return L.imageOverlay(gridImage('pm'+idx+pmMode,PM.nx,PM.ny,arr,v=>abs?[ramp(v/60,PMSEQ),Math.round(Math.min(1,v/8)*205)]:[ramp((v+15)/30,DIV),Math.round(Math.min(1,Math.abs(v)/2.5)*215)]),[[-91,-181],[91,179]],{pane:forCmp?'basemapB':'basemap',opacity:.9,interactive:false});}
   if(mode==='co'){const c=CO.months[idx],abs=coMode==='abs',zn=coMode==='zonal';const arr=(abs||zn)?decodeU8(c.abs):decode8(c.anom);let a16=new Int16Array(arr.length);for(let k=0;k<arr.length;k++)a16[k]=((abs||zn)?arr[k]===0:arr[k]===-128)?-32768:arr[k]*10;if(zn)a16=zonal('coz'+idx,a16,CO.ny,CO.nx,2,-32768);return L.imageOverlay(gridImage('co'+idx+coMode,CO.nx,CO.ny,a16,v=>abs?[ramp((v-60)/140,COSEQ),205]:[ramp((v+30)/60,DIV),Math.round(Math.min(1,Math.abs(v)/4)*215)]),[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.9,interactive:false});}
+  if(mode==='glwd'){return L.imageOverlay(glwdSrc(glwdMode==='frac'?0:1),[[-56,-180],[84,180]],{pane:forCmp?'basemapB':'basemap',opacity:.95,interactive:false});}
   if(mode==='chl'){const c=CHL.months[idx];return L.imageOverlay(c.src,[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.92,interactive:false});}
   if(mode==='sst'){const c=SST.months[idx];return L.imageOverlay(c.src,[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.92,interactive:false});}
   if(mode==='firem'){const c=FIREM.months[idx],abs=fmMode==='abs';return L.imageOverlay(gridImage('fm'+idx+fmMode,FIREM.nx,FIREM.ny,decode16(abs?c.abs:c.anom),v=>abs?[ramp(Math.log10(1+v)/3,FMSEQ),Math.round(Math.min(1,v/5)*215)]:[ramp((v+300)/600,DIV),Math.round(Math.min(1,Math.abs(v)/30)*215)]),[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.9,interactive:false});}
@@ -1365,6 +1376,10 @@ function showBase(from){
     const i=+sstSl.value,c=SST.months[i];baseLayer=layerFor('sst',i).addTo(map);
     const [y,m]=c.date.split('-');document.getElementById('sstDate').textContent=MON[+m-1]+' '+y+(c.partial?' (partial month)':'');
     document.getElementById('sstNote').textContent=`Monthly mean sea-surface temperature anomaly from the GHRSST MUR 0.25° analysis (NASA JPL; anomaly relative to its 2003–2014 daily climatology), sampled every fifth day and averaged monthly; shown at 0.125° (hover/click values use a 1° grid). Niño 3.4 box mean this month: ${c.nino34>0?'+':''}${c.nino34.toFixed(2)} °C (CPC’s ERSST-based value differs by a few tenths because of the different baseline). Source: NASA GIBS.`;
+  } else if(baseMode==='glwd'){
+    baseLayer=layerFor('glwd',0).addTo(map);const fr=glwdMode==='frac';
+    document.getElementById('glwdLeg').innerHTML=fr?`<div class="bar" style="background:linear-gradient(90deg,#deebf7,#9ecae1,#4292c6,#084594)"></div><div class="lab2"><span>2 %</span><span>wetland share of cell</span><span>100 %</span></div>`:Object.entries(GLWD.gcol).map(([g,c])=>`<div style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:11px;background:rgb(${c.join(',')});border:1px solid rgba(0,0,0,.25);display:inline-block"></span>${g}</div>`).join('');
+    document.getElementById('glwdNote').textContent=fr?'Share of each 0.0625° cell covered by any of the 33 GLWD v2 wetland and waterbody classes (maximum extent including intermittent classes). Static map representing 1990–2020; the CH₄ context for the SOCAT, PMEL and tower layers.':'Dominant class per 0.0625° cell, shown only where a wetland or waterbody class is the majority; the 33 classes are grouped into 10 colours here, and the full class name appears in the hover/click readout.';
   } else if(baseMode==='chl'){
     const i=+chlSl.value,c=CHL.months[i];baseLayer=layerFor('chl',i).addTo(map);
     const [y,m]=c.date.split('-');document.getElementById('chlDate').textContent=MON[+m-1]+' '+y;
@@ -1383,6 +1398,7 @@ function showBase(from){
 const slMode={ocoSl:'oco2',ndviSl:'ndvi',s3Sl:'s3',pmSl:'pm',coSl:'co',fmSl:'firem',sstSl:'sst',chlSl:'chl'};
 for(const id in slMode) document.getElementById(id).addEventListener('input',()=>showBase(slMode[id]));
 document.querySelectorAll('#ocoMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#ocoMode button').forEach(x=>x.classList.toggle('on',x===b));ocoMode=b.dataset.m;showBase();}));
+document.querySelectorAll('#glwdMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#glwdMode button').forEach(x=>x.classList.toggle('on',x===b));glwdMode=b.dataset.m;showBase();}));
 document.querySelectorAll('#coMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#coMode button').forEach(x=>x.classList.toggle('on',x===b));coMode=b.dataset.m;showBase();}));
 document.querySelectorAll('#fmMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#fmMode button').forEach(x=>x.classList.toggle('on',x===b));fmMode=b.dataset.m;showBase();}));
 document.querySelectorAll('input[name=base]').forEach(r=>r.addEventListener('change',()=>{if(r.checked){const prev=baseMode;baseMode=r.value;if(SL[prev])syncDates(prev);showBase();}}));
@@ -1593,11 +1609,12 @@ function showRegion(b){const el=document.getElementById('chart');el.classList.ad
 
 /* ---------- permalink ---------- */
 let hashBusy=false;
-updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ','SOCAT','PMEL'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`t=${curTab}`,`x=${['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
+updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ','SOCAT','PMEL'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`t=${curTab}`,`x=${['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='glwd'?`gw=${glwdMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
 map.on('moveend',updateHash);
 map.on('move zoom resize',()=>{if(regionBoxEl&&regionRect){const a=map.latLngToContainerPoint(regionRect.getNorthWest()),b2=map.latLngToContainerPoint(regionRect.getSouthEast());regionBoxEl.style.left=Math.min(a.x,b2.x)+'px';regionBoxEl.style.top=Math.min(a.y,b2.y)+'px';regionBoxEl.style.width=Math.abs(a.x-b2.x)+'px';regionBoxEl.style.height=Math.abs(a.y-b2.y)+'px';}});
 function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;const q={};h.split('&').forEach(kv=>{const [k,v]=kv.split('=');q[k]=decodeURIComponent(v||'');});
   if(q.b&&document.querySelector(`input[name=base][value=${q.b}]`)){baseMode=q.b;document.querySelector(`input[name=base][value=${q.b}]`).checked=true;}
+  if(q.gw){glwdMode=q.gw;document.querySelectorAll('#glwdMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.gw));}
   if(q.pm)pmMode=q.pm;if(q.co)coMode=q.co;if(q.fm)fmMode=q.fm;if(q.oc){ocoMode=q.oc;document.querySelectorAll('#ocoMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.oc));}
   if(q.i!=null&&SL[baseMode]){const el=document.getElementById(SL[baseMode].el);el.value=Math.min(+el.max,Math.max(0,+q.i));syncDates(baseMode);}
   if(q.m&&document.querySelector(`#anomMode button[data-m=${q.m}]`)){anomMode=q.m;document.querySelectorAll('#anomMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.m));}
@@ -1627,6 +1644,7 @@ function valuesAt(ll){const la=ll.lat,lo=normLng(ll.lng),rows=[];const f=(v,dp,u
   if(baseMode==='pm'){const i=+pmSl.value,c=PM.months[i];rows.push(['GEOS-CF PM₂.₅ '+c.date+' (2°)',f(cellVal(cached('pma'+i,()=>decode16(c.abs)),PM.nx,PM.ny,-32768,10,la,lo,91,-91,-181),1,'µg/m³')],['Anomaly vs 2021–25',f(cellVal(cached('pmn'+i,()=>decode16(c.anom)),PM.nx,PM.ny,-32768,10,la,lo,91,-91,-181),1,'µg/m³')]);}
   if(baseMode==='co'){const i=+coSl.value,c=CO.months[i];const a=cached('coa'+i,()=>decodeU8(c.abs));const v=cellVal(a,CO.nx,CO.ny,0,1,la,lo,90,-90,-180);const an=cellVal(cached('con'+i,()=>decode8(c.anom)),CO.nx,CO.ny,-128,1,la,lo,90,-90,-180);rows.push(['AIRS CO 500 hPa '+c.date+' (1.5°)',f(v,0,'ppb')],['Anomaly vs 2021–25',f(an,0,'ppb')]);}
   if(baseMode==='firem'){const i=+fmSl.value,c=FIREM.months[i];rows.push(['VIIRS fire detections '+c.date+' (2°)',f(cellVal(cached('fma'+i,()=>decode16(c.abs)),FIREM.nx,FIREM.ny,-32768,1,la,lo,90,-90,-180),0)],['Anomaly vs 2021–25',f(cellVal(cached('fmn'+i,()=>decode16(c.anom)),FIREM.nx,FIREM.ny,-32768,1,la,lo,90,-90,-180),0)]);}
+  if(baseMode==='glwd'){const fr=cellVal(cached('glwdf',()=>decodeU8(GLWD.frac)),GLWD.nx,GLWD.ny,255,1,la,lo,84,-56,-180);const dm=cellVal(cached('glwdd',()=>decodeU8(GLWD.dom)),GLWD.nx,GLWD.ny,255,1,la,lo,84,-56,-180);rows.push(['GLWD v2 wetland fraction (0.25°)',fr==null?'no data':fr.toFixed(0)+' %'],['Dominant wetland class',dm==null?'none':GLWD.names[String(dm)]||dm]);}
   if(baseMode==='chl'){const i=+chlSl.value,c=CHL.months[i];const v=cellVal(cached('chl'+i,()=>decode8(c.b64)),CHL.nx,CHL.ny,-128,100,la,lo,90,-90,-180);rows.push(['Chlorophyll anomaly '+c.date+' (2°)',v==null?'no data':(v>=0?'×':'÷')+Math.pow(10,Math.abs(v)).toFixed(2)]);}
   if(baseMode==='sst'){const i=+sstSl.value,c=SST.months[i];rows.push(['SST anomaly '+c.date+' (1°)',f(cellVal(cached('sst8'+i,()=>decode8(c.b64)),SST.nx,SST.ny,-128,20,la,lo,90,-90,-180),2,'°C')]);}
   if(baseMode==='none'&&!rows.length)return null;
