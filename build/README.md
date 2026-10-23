@@ -61,3 +61,6 @@ Chromium before the workflow commits; the `refresh.yml.example` pip line install
 ## Ocean layers
 * `chl_layer.py` — VIIRS NOAA-20 monthly chlorophyll from NASA OceanColor (needs EARTHDATA_TOKEN), log-ratio anomaly vs 2021–2025 → `chl/anom_*.webp` + `chl.json` (2° grid). Monthly; add to the weekly run once the assembler maps it (`d-chl` block + `chl-img-N` images, same pattern as SST).
 * PMEL moored CO₂ (`d-st` → `pmel`) comes from the PMEL ERDDAP table `all_pmel_co2_moorings` (pCO2_sw since 2010, monthly means of ≥20 values); BGC-Argo float positions (`d-bgc`) from the Argo GDAC `argo_synthetic-profile_index.txt.gz` (latest profile per float with BGC parameters, last 2 years). Both were built interactively on 22 Oct 2026; the aggregation code is in the project chat and should be folded into `build_all.py` as an `ocean` step.
+
+## Other flux towers
+Non-FLUXNET towers live in the page as the `d-other` JSON block (id, name, country, lat, lon, elev, pi, began, active, veg, sensors, note). To add a site, append an object to that block in `dashboard-single.html` and re-run `split_page.py`.
