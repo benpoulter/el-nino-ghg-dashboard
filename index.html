@@ -848,6 +848,7 @@ body.chartOpen #hover{bottom:88px}
 .leaflet-control-zoom{display:none}
 .leaflet-control-attribution{background:rgba(255,255,255,.75);font-size:10px}
 .leaflet-tooltip{font-size:12px}
+.clabel.terr{font-style:italic;text-transform:none;font-weight:600;letter-spacing:.2px;font-size:10.5px}
 .clabel{font:600 11px/1.1 'Open Sans',sans-serif;color:#3b3f45;text-shadow:0 0 3px #e4e6e9,0 0 3px #e4e6e9,0 0 3px #e4e6e9;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;pointer-events:none;transform:translate(-50%,-50%)}
 .clabel.lg{font-size:13px;letter-spacing:.9px}
 /* about modal */
@@ -1316,7 +1317,7 @@ map.on('resize',()=>{const z=map.getZoom();map.setMinZoom(0);const fz=map.getBou
 map.createPane('labels').style.zIndex=440;
 const borderLayer=L.geoJSON({type:'FeatureCollection',features:BORDERS.features.concat(shiftGeo(BORDERS).features)},{pane:'coast',style:()=>({color:'#5f646b',weight:0.7,opacity:.8,fill:false,interactive:false})}).addTo(map);
 const labelLayer=L.layerGroup();
-const labelMarkers=LABELS.concat(LABELS.filter(l=>l[2]<0).map(l=>[l[0],l[1],l[2]+WRAP,l[3]])).map(([n,la,lo,rk])=>({rk,mk:L.marker([la,lo],{pane:'labels',interactive:false,icon:L.divIcon({className:'clabel'+(rk<=3?' lg':''),html:n,iconSize:null})})}));
+const labelMarkers=LABELS.concat(LABELS.filter(l=>l[2]<0).map(l=>[l[0],l[1],l[2]+WRAP,l[3],l[4]])).map(([n,la,lo,rk,sov])=>({rk,mk:L.marker([la,lo],{pane:'labels',interactive:false,icon:L.divIcon({className:'clabel'+(rk<=3?' lg':'')+(sov?' terr':''),html:n,iconSize:null})})}));
 function updateLabels(){const z=map.getZoom();const maxRk=z<1.75?0:z<2.5?3:z<3.5?5:z<4.5?6:99;
   borderLayer.setStyle({weight:z<1.75?0.7:z<3.5?0.9:1.1,opacity:.8});
   labelMarkers.forEach(o=>{const show=o.rk<=maxRk;if(show&&!labelLayer.hasLayer(o.mk))labelLayer.addLayer(o.mk);if(!show&&labelLayer.hasLayer(o.mk))labelLayer.removeLayer(o.mk);});
@@ -1596,7 +1597,7 @@ document.getElementById('cClose').addEventListener('click',()=>{if(regionBoxEl){
 
 /* ---------- search ---------- */
 const items=[];
-for(const [n,la,lo] of LABELS) items.push({t:'Country',n,la,lo,z:null,key:n.toLowerCase()});
+for(const [n,la,lo,,sov] of LABELS) items.push({t:sov?'Region':'Country',n,sub:sov?sov:undefined,la,lo,z:sov?5:null,key:(n+' '+(sov||'')).toLowerCase()});
 for(const [n,la,lo,c] of CITIES) items.push({t:'City',n,la,lo,sub:c,z:5.5,key:(n+' '+c).toLowerCase()});
 for(const net in NETS) for(const s of NETS[net]) items.push({t:net,n:s.name,sub:s.id+(s.country?' · '+s.country:''),la:s.lat,lo:s.lon,z:5.5,key:(s.name+' '+s.id+' '+(s.country||'')).toLowerCase(),st:s});
 for(const net in FLUX) for(const s of FLUX[net]) items.push({t:net,n:s.name,sub:s.id+' · '+s.country,la:s.lat,lo:s.lon,z:7,key:(s.name+' '+s.id+' '+s.country+' '+s.pi).toLowerCase(),fx:net});
