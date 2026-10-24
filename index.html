@@ -999,6 +999,14 @@ body.chartOpen #hover{bottom:88px}
       <p class="note" id="s3Note"></p>
     </div>
   </div>
+  <div class="opt" data-base="pndvi">
+    <div class="hd"><input type="radio" name="base" value="pndvi"><span class="lbl">PACE NDVI anomaly<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="slider"><input type="range" id="pndviSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="pndviDate"></b></div></div>
+      <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#8c510a,#d8b365,#f5f5f5,#5ab4ac,#01665e)"></div><div class="lab2"><span>−0.2 browner</span><span>0</span><span>+0.2 greener</span></div></div>
+      <p class="note" id="pndviNote"></p>
+    </div>
+  </div>
   <div class="opt" data-base="glwd">
     <div class="hd"><input type="radio" name="base" value="glwd"><span class="lbl">Wetlands (GLWD v2)<small>static</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
     <div class="body">
@@ -1045,11 +1053,26 @@ body.chartOpen #hover{bottom:88px}
     </div>
   </div>
   <div class="opt" data-base="chl">
-    <div class="hd"><input type="radio" name="base" value="chl"><span class="lbl">Chlorophyll anomaly<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="hd"><input type="radio" name="base" value="chl"><span class="lbl">VIIRS chlorophyll anomaly<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
     <div class="body">
       <div class="slider"><input type="range" id="chlSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="chlDate"></b></div></div>
       <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#5e3c99,#b2abd2,#f7f7f7,#a6dba0,#008837)"></div><div class="lab2"><span>÷2 (less)</span><span>0</span><span>×2 (more)</span></div></div>
       <p class="note" id="chlNote"></p>
+    </div>
+  </div>
+  <div class="opt" data-base="pchl">
+    <div class="hd"><input type="radio" name="base" value="pchl"><span class="lbl">PACE chlorophyll anomaly<small>monthly</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="slider"><input type="range" id="pchlSl" min="0" max="0" value="0"><div class="lab"><span>Month</span><b id="pchlDate"></b></div></div>
+      <div class="legend"><div class="bar" style="background:linear-gradient(90deg,#5e3c99,#b2abd2,#f7f7f7,#a6dba0,#008837)"></div><div class="lab2"><span>÷2 (less)</span><span>0</span><span>×2 (more)</span></div></div>
+      <p class="note" id="pchlNote"></p>
+    </div>
+  </div>
+  <div class="opt" data-base="tc">
+    <div class="hd"><input type="radio" name="base" value="tc"><span class="lbl">True colour<small>imagery</small></span><svg class="chev" viewBox="0 0 18 18"><path d="M4 7l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></div>
+    <div class="body">
+      <div class="seg" id="tcMode"><button data-m="bm" class="on">Blue Marble (cloud-free)</button><button data-m="pace">PACE OCI, 18 Oct 2026</button></div>
+      <p class="note" id="tcNote"></p>
     </div>
   </div>
   <h2>Basemap · Fire</h2>
@@ -1130,6 +1153,8 @@ body.chartOpen #hover{bottom:88px}
   <tr><td>Other flux towers</td><td>Eddy-covariance CO₂/CH₄ sites not in FLUXNET, with metadata supplied directly by the site teams (<span class="cnt" data-cnt="ot">2</span> sites: Inirida, Colombia and Mopologoma, Uganda — tropical peat swamps, PIs Juan Benavides, Frank Kansiime and Angela Gallego-Sala). Kept in the page as a small JSON list (<code>d-other</code>) that can be extended by hand.</td><td>Registry only; no time series yet.</td></tr>
   <tr><td>Wetlands (GLWD v2) basemap</td><td><a href="https://doi.org/10.6084/m9.figshare.28519994" target="_blank" rel="noopener">Global Lakes and Wetlands Database v2.0</a> (Lehner et al. 2025, ESSD 17, 2277–2313; CC BY 4.0), <em>combined classes</em> grids at 15 arc-seconds: total wetland area percent averaged to 0.0625° for the fraction map, and the main-class grid resampled by mode for the dominant-class map (the class shown is the majority class of the cell, so small wetlands inside dryland cells do not appear in that view but do count in the fraction). Readouts use 0.25° grids.</td><td>Static (1990–2020 reference period); no refresh needed.</td></tr>
   <tr><td>NOAA baseline observatories (inverted triangles)</td><td>NOAA GML continuous in-situ CO₂ and CH₄ at Utqiaġvik/Barrow (BRW), Mauna Loa (MLO), Mauna Kea (MKO, since the 2022 eruption), American Samoa (SMO) and South Pole (SPO): monthly means from the <code>surface-insitu_1_ccgg_MonthlyData</code> files, quality-flag-passed values only, from 2015. CH₄ is available at BRW, MLO and MKO. Like the flask files these are released annually (currently to December 2025); Mauna Loa CO₂ is extended with GML’s preliminary monthly means.</td><td><span class="cnt" data-cnt="nob">5</span> observatories, 2015 onward.</td></tr>
+  <tr><td>PACE chlorophyll and NDVI basemaps</td><td>NASA PACE OCI Level-3 monthly products from OceanColor: <em>CHL chlor_a</em> 4 km (V3.2, NRT files where final ones are not yet released), log₁₀-averaged to 0.25°, anomaly vs the same month of 2024–2025; and <em>LANDVI ndvi</em> 4 km (V3.1), averaged to 0.25°, anomaly vs 2024–2025. PACE launched in February 2024, so the baselines are one or two years rather than five.</td><td>Chl Oct 2025 – Sep 2026; NDVI Oct 2025 – Aug 2026.</td></tr>
+  <tr><td>True-colour imagery</td><td>NASA GIBS: <em>BlueMarble_NextGeneration</em> (static, cloud-free 2004 MODIS composite) and <em>OCI_PACE_True_Color</em> for a single recent day, both at 0.125°.</td><td>Static / 18 Oct 2026.</td></tr>
   <tr><td>Coastlines</td><td><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> 1:110m land polygons (public domain).</td><td>—</td></tr></table>
 
   <h3>How the station values are aggregated</h3>
@@ -1185,12 +1210,15 @@ body.chartOpen #hover{bottom:88px}
 (async function(){
 async function J(id){const el=document.getElementById(id);if(!el){const r=await fetch('data/'+id+'.json');if(!r.ok)throw new Error('missing data/'+id+'.json');return r.json();}if(el.dataset.gz!=='1')return JSON.parse(el.textContent);if(!('DecompressionStream' in window)){document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;inset:0;z-index:9999;background:#fff;padding:40px;font-family:sans-serif">This dashboard needs a browser from 2023 or later (Chrome 80+, Safari 16.4+, Firefox 113+).</div>');throw new Error('no DecompressionStream');}const bin=Uint8Array.from(atob(el.textContent),c=>c.charCodeAt(0));const ds=new DecompressionStream('gzip');const w=ds.writable.getWriter();w.write(bin);w.close();const buf=await new Response(ds.readable).arrayBuffer();return JSON.parse(new TextDecoder().decode(buf));}
 const prog=(n,t)=>{const el=document.getElementById('splashBar');if(el)el.style.width=Math.round(100*n/t)+'%';};
-const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2','d-sst','d-outlook','d-flux','d-col','d-chl','d-bgc','d-other','d-glwd'];let done=0;
-const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,SST,OUTLOOK,FLUX,COL,CHL,BGC,OTHER,GLWD]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
+const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2','d-sst','d-outlook','d-flux','d-col','d-chl','d-bgc','d-other','d-glwd','d-pchl','d-pndvi'];let done=0;
+const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,SST,OUTLOOK,FLUX,COL,CHL,BGC,OTHER,GLWD,PCHL,PNDVI]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
 NDVI.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('ndvi-img-'+i);return el?el.textContent:'data/ndvi-img-'+i+'.webp';}}));
 S3N.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('s3-img-'+i);return el?el.textContent:'data/s3-img-'+i+'.png';}}));
 SST.months.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('sst-img-'+i);return el?el.textContent:'data/sst-img-'+i+'.webp';}}));
 CHL.months.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('chl-img-'+i);return el?el.textContent:'data/chl-img-'+i+'.webp';}}));
+PCHL.months.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('pchl-img-'+i);return el?el.textContent:'data/pchl-img-'+i+'.webp';}}));
+PNDVI.months.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('pndvi-img-'+i);return el?el.textContent:'data/pndvi-img-'+i+'.webp';}}));
+const tcSrc=i=>{const el=document.getElementById('tc-img-'+i);return el?el.textContent:'data/tc-img-'+i+'.webp';};
 const NETS={ICOS:ST.icos,NOAA:ST.noaa,NOAAobs:ST.noaaobs||[],OpenAQ:ST.aq,SOCAT:ST.socat||[],PMEL:ST.pmel||[]};
 const dark=()=>{const t=document.documentElement.getAttribute('data-theme');return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;};
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1310,7 +1338,9 @@ const s3Sl=document.getElementById('s3Sl'); s3Sl.max=S3N.length-1; s3Sl.value=S3
 const pmSl=document.getElementById('pmSl'); pmSl.max=PM.months.length-1; pmSl.value=PM.months.length-1;
 const sstSl=document.getElementById('sstSl'); sstSl.max=SST.months.length-1; sstSl.value=SST.months.length-1;
 const chlSl=document.getElementById('chlSl'); chlSl.max=CHL.months.length-1; chlSl.value=CHL.months.length-1;
-let baseLayer=null, cmpLayer=null, baseMode='ndvi', pmMode='abs', coMode='abs', fmMode='abs', ocoMode='abs', glwdMode='frac';
+const pchlSl=document.getElementById('pchlSl'); pchlSl.max=PCHL.months.length-1; pchlSl.value=PCHL.months.length-1;
+const pndviSl=document.getElementById('pndviSl'); pndviSl.max=PNDVI.months.length-1; pndviSl.value=PNDVI.months.length-1;
+let baseLayer=null, cmpLayer=null, baseMode='ndvi', pmMode='abs', coMode='abs', fmMode='abs', ocoMode='abs', glwdMode='frac', tcMode='bm';
 const glwdSrc=i=>{const el=document.getElementById('glwd-img-'+i);return el?el.textContent:'data/glwd-img-'+i+'.webp';};
 const gridCache={};function cached(key,fn){return gridCache[key]||(gridCache[key]=fn());}
 function zonal(key,a,ny,nx,band,nodata){return cached(key,()=>{const out=new Int16Array(a.length);for(let y0=0;y0<ny;y0+=band){let s=0,n=0;for(let y=y0;y<Math.min(ny,y0+band);y++)for(let x=0;x<nx;x++){const v=a[y*nx+x];if(v!==nodata){s+=v;n++;}}const m=n?s/n:0;for(let y=y0;y<Math.min(ny,y0+band);y++)for(let x=0;x<nx;x++){const k=y*nx+x;out[k]=a[k]===nodata||!n?-32768:Math.round(a[k]-m);}}return out;});}
@@ -1320,7 +1350,7 @@ const fmSl=document.getElementById('fmSl'); fmSl.max=FIREM.months.length-1; fmSl
 const COSEQ=[[255,253,218],[254,196,79],[217,95,14],[140,20,60],[47,5,74]], FMSEQ=[[255,245,204],[254,178,76],[240,59,32],[128,0,38]];
 function decode8(b64){const bin=atob(b64);const a=new Int8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=(bin.charCodeAt(i)<<24)>>24;return a;}
 function decodeU8(b64){const bin=atob(b64);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a;}
-const SL={oco2:{el:'ocoSl',dates:OCO.cycles.map(c=>c.end)},ndvi:{el:'ndviSl',dates:NDVI.map(c=>c.date+'-15')},s3:{el:'s3Sl',dates:S3N.map(c=>c.date)},pm:{el:'pmSl',dates:PM.months.map(c=>c.date+'-15')},co:{el:'coSl',dates:CO.months.map(c=>c.date+'-15')},firem:{el:'fmSl',dates:FIREM.months.map(c=>c.date+'-15')},sst:{el:'sstSl',dates:SST.months.map(c=>c.date+'-15')},chl:{el:'chlSl',dates:CHL.months.map(c=>c.date+'-15')}};
+const SL={oco2:{el:'ocoSl',dates:OCO.cycles.map(c=>c.end)},ndvi:{el:'ndviSl',dates:NDVI.map(c=>c.date+'-15')},s3:{el:'s3Sl',dates:S3N.map(c=>c.date)},pm:{el:'pmSl',dates:PM.months.map(c=>c.date+'-15')},co:{el:'coSl',dates:CO.months.map(c=>c.date+'-15')},firem:{el:'fmSl',dates:FIREM.months.map(c=>c.date+'-15')},sst:{el:'sstSl',dates:SST.months.map(c=>c.date+'-15')},chl:{el:'chlSl',dates:CHL.months.map(c=>c.date+'-15')},pchl:{el:'pchlSl',dates:PCHL.months.map(c=>c.date+'-15')},pndvi:{el:'pndviSl',dates:PNDVI.months.map(c=>c.date+'-15')}};
 function nearestIdx(dates,d){const tt=Date.parse(d);let bi=0,bd=1e18;dates.forEach((x,i)=>{const dd=Math.abs(Date.parse(x)-tt);if(dd<bd){bd=dd;bi=i;}});return bi;}
 function curDate(mode){const s=SL[mode];return s?s.dates[+document.getElementById(s.el).value]:null;}
 function syncDates(from){if(!document.getElementById('ckSync').checked)return;const d=curDate(from);if(!d)return;for(const k in SL){if(k===from)continue;document.getElementById(SL[k].el).value=nearestIdx(SL[k].dates,d);}}
@@ -1330,6 +1360,9 @@ function layerFor(mode,idx,forCmp){
   if(mode==='s3'){return L.imageOverlay(S3N[idx].src,[[-60,-180],[80,180]],{pane:forCmp?'basemapB':'basemap',opacity:.95,interactive:false});}
   if(mode==='pm'){const c=PM.months[idx],abs=pmMode==='abs',zn=pmMode==='zonal';const arr=zn?zonal('pmz'+idx,cached('pma'+idx,()=>decode16(c.abs)),PM.ny,PM.nx,1,-32768):decode16(abs?c.abs:c.anom);return L.imageOverlay(gridImage('pm'+idx+pmMode,PM.nx,PM.ny,arr,v=>abs?[ramp(v/60,PMSEQ),Math.round(Math.min(1,v/8)*205)]:[ramp((v+15)/30,DIV),Math.round(Math.min(1,Math.abs(v)/2.5)*215)]),[[-91,-181],[91,179]],{pane:forCmp?'basemapB':'basemap',opacity:.9,interactive:false});}
   if(mode==='co'){const c=CO.months[idx],abs=coMode==='abs',zn=coMode==='zonal';const arr=(abs||zn)?decodeU8(c.abs):decode8(c.anom);let a16=new Int16Array(arr.length);for(let k=0;k<arr.length;k++)a16[k]=((abs||zn)?arr[k]===0:arr[k]===-128)?-32768:arr[k]*10;if(zn)a16=zonal('coz'+idx,a16,CO.ny,CO.nx,2,-32768);return L.imageOverlay(gridImage('co'+idx+coMode,CO.nx,CO.ny,a16,v=>abs?[ramp((v-60)/140,COSEQ),205]:[ramp((v+30)/60,DIV),Math.round(Math.min(1,Math.abs(v)/4)*215)]),[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.9,interactive:false});}
+  if(mode==='pchl'){const c=PCHL.months[idx];return L.imageOverlay(c.src,[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.92,interactive:false});}
+  if(mode==='pndvi'){const c=PNDVI.months[idx];return L.imageOverlay(c.src,[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.9,interactive:false});}
+  if(mode==='tc'){return L.imageOverlay(tcSrc(tcMode==='bm'?0:1),[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:1,interactive:false});}
   if(mode==='glwd'){return L.imageOverlay(glwdSrc(glwdMode==='frac'?0:1),[[-56,-180],[84,180]],{pane:forCmp?'basemapB':'basemap',opacity:.95,interactive:false});}
   if(mode==='chl'){const c=CHL.months[idx];return L.imageOverlay(c.src,[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.92,interactive:false});}
   if(mode==='sst'){const c=SST.months[idx];return L.imageOverlay(c.src,[[-90,-180],[90,180]],{pane:forCmp?'basemapB':'basemap',opacity:.92,interactive:false});}
@@ -1389,6 +1422,15 @@ function showBase(from){
     const i=+sstSl.value,c=SST.months[i];baseLayer=layerFor('sst',i).addTo(map);
     const [y,m]=c.date.split('-');document.getElementById('sstDate').textContent=MON[+m-1]+' '+y+(c.partial?' (partial month)':'');
     document.getElementById('sstNote').textContent=`Monthly mean sea-surface temperature anomaly from the GHRSST MUR 0.25° analysis (NASA JPL; anomaly relative to its 2003–2014 daily climatology), sampled every fifth day and averaged monthly; shown at 0.125° (hover/click values use a 1° grid). Niño 3.4 box mean this month: ${c.nino34>0?'+':''}${c.nino34.toFixed(2)} °C (CPC’s ERSST-based value differs by a few tenths because of the different baseline). Source: NASA GIBS.`;
+  } else if(baseMode==='pchl'){
+    const i=+pchlSl.value,c=PCHL.months[i];baseLayer=layerFor('pchl',i).addTo(map);const [y,m]=c.date.split('-');document.getElementById('pchlDate').textContent=MON[+m-1]+' '+y;
+    document.getElementById('pchlNote').textContent=`PACE OCI monthly chlorophyll-a (NASA OceanColor L3 4 km, V3.2; NRT for recent months) as a log₁₀ ratio to the same month in ${c.nbase===1?'2025 (one baseline year)':'2024–2025 (two baseline years)'} — PACE launched in February 2024, so the baseline is short and anomalies are relative to recent, El Niño-free years. Global mean log-ratio ${c.mean>=0?'+':''}${c.mean.toFixed(3)}.`;
+  } else if(baseMode==='pndvi'){
+    const i=+pndviSl.value,c=PNDVI.months[i];baseLayer=layerFor('pndvi',i).addTo(map);const [y,m]=c.date.split('-');document.getElementById('pndviDate').textContent=MON[+m-1]+' '+y;
+    document.getElementById('pndviNote').textContent=`PACE OCI hyperspectral land vegetation index (NDVI from the LANDVI 4 km monthly product, V3.1), minus the same month in ${c.nbase===1?'2025 (one baseline year)':'2024–2025 (two baseline years)'}; shown at 0.25°. Independent of MODIS and Sentinel-3; baseline is short because PACE launched in 2024. Global mean anomaly ${c.mean>=0?'+':''}${c.mean.toFixed(3)}.`;
+  } else if(baseMode==='tc'){
+    baseLayer=layerFor('tc',0).addTo(map);
+    document.getElementById('tcNote').textContent=tcMode==='bm'?'NASA Blue Marble: Next Generation — a cloud-free true-colour composite of MODIS imagery (2004), with ocean colour from bathymetry shading. Static reference imagery, not a measurement.':'PACE OCI true-colour image for 18 October 2026 from NASA GIBS: a single day of swaths, so clouds and orbit gaps are real. Shows ocean colour (sediment plumes, blooms) and smoke as the instrument saw them.';
   } else if(baseMode==='glwd'){
     baseLayer=layerFor('glwd',0).addTo(map);const fr=glwdMode==='frac';
     document.getElementById('glwdLeg').innerHTML=fr?`<div class="bar" style="background:linear-gradient(90deg,#deebf7,#9ecae1,#4292c6,#084594)"></div><div class="lab2"><span>2 %</span><span>wetland share of cell</span><span>100 %</span></div>`:Object.entries(GLWD.gcol).map(([g,c])=>`<div style="display:flex;align-items:center;gap:6px"><span style="width:11px;height:11px;background:rgb(${c.join(',')});border:1px solid rgba(0,0,0,.25);display:inline-block"></span>${g}</div>`).join('');
@@ -1408,9 +1450,10 @@ function showBase(from){
   if(document.getElementById('ckCmp').checked)showCmp();
   updateHash();
 }
-const slMode={ocoSl:'oco2',ndviSl:'ndvi',s3Sl:'s3',pmSl:'pm',coSl:'co',fmSl:'firem',sstSl:'sst',chlSl:'chl'};
+const slMode={ocoSl:'oco2',ndviSl:'ndvi',s3Sl:'s3',pmSl:'pm',coSl:'co',fmSl:'firem',sstSl:'sst',chlSl:'chl',pchlSl:'pchl',pndviSl:'pndvi'};
 for(const id in slMode) document.getElementById(id).addEventListener('input',()=>showBase(slMode[id]));
 document.querySelectorAll('#ocoMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#ocoMode button').forEach(x=>x.classList.toggle('on',x===b));ocoMode=b.dataset.m;showBase();}));
+document.querySelectorAll('#tcMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#tcMode button').forEach(x=>x.classList.toggle('on',x===b));tcMode=b.dataset.m;showBase();}));
 document.querySelectorAll('#glwdMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#glwdMode button').forEach(x=>x.classList.toggle('on',x===b));glwdMode=b.dataset.m;showBase();}));
 document.querySelectorAll('#coMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#coMode button').forEach(x=>x.classList.toggle('on',x===b));coMode=b.dataset.m;showBase();}));
 document.querySelectorAll('#fmMode button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#fmMode button').forEach(x=>x.classList.toggle('on',x===b));fmMode=b.dataset.m;showBase();}));
@@ -1614,7 +1657,7 @@ function showRegion(b){const el=document.getElementById('chart');el.classList.ad
    {name:'AIRS CO 500 hPa (ppb)',unit:'ppb',dp:0,pts:CO.months.map(c=>{const a=decodeU8(c.abs);const a16=new Int16Array(a.length);for(let k=0;k<a.length;k++)a16[k]=a[k]===0?-32768:a[k]*10;return [c.date,gridMean(a16,CO.nx,CO.ny,-32768,10,b,90,-90,-180,180)];}),color:'#8c1440'},
    {name:'GEOS-CF PM₂.₅ (µg/m³)',unit:'µg/m³',dp:1,pts:PM.months.map(c=>[c.date,gridMean(decode16(c.abs),PM.nx,PM.ny,-32768,10,b,91,-91,-181,179)]),color:'#e8930b'},
    {name:'VIIRS fire detections (per 2° cell, mean)',unit:'',dp:0,pts:FIREM.months.map(c=>[c.date,gridMean(decode16(c.abs),FIREM.nx,FIREM.ny,-32768,1,b,90,-90,-180,180)]),color:'#eb4141'},
-   {name:'Chlorophyll anomaly, area mean (log₁₀ ratio)',unit:'',dp:3,pts:CHL.months.map(c=>[c.date,gridMean(decode8(c.b64),CHL.nx,CHL.ny,-128,100,b,90,-90,-180,180)]),color:'#008837'},
+   {name:'VIIRS chlorophyll anomaly, area mean (log₁₀ ratio)',unit:'',dp:3,pts:CHL.months.map(c=>[c.date,gridMean(decode8(c.b64),CHL.nx,CHL.ny,-128,100,b,90,-90,-180,180)]),color:'#008837'},
    {name:'SST anomaly, area mean (°C)',unit:'°C',dp:2,pts:SST.months.map(c=>[c.date,gridMean(decode8(c.b64),SST.nx,SST.ny,-128,20,b,90,-90,-180,180)]),color:'#2166ac'},
    {name:'Niño 3.4 SST anomaly (°C)',unit:'°C',dp:2,pts:Object.keys(NINO_M).filter(k=>k>='2025-09').sort().map(k=>[k,NINO_M[k]]),color:'#6b7fa3'}];
   rcharts.forEach(c=>c.destroy());rcharts=[];g.innerHTML=series.map((s,i)=>`<div class="mini"><span>${s.name}</span><canvas id="rc${i}"></canvas></div>`).join('');
@@ -1623,11 +1666,12 @@ function showRegion(b){const el=document.getElementById('chart');el.classList.ad
 
 /* ---------- permalink ---------- */
 let hashBusy=false;
-updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ','SOCAT','PMEL','NOAAobs'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`t=${curTab}`,`x=${['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='glwd'?`gw=${glwdMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
+updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ','SOCAT','PMEL','NOAAobs'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`t=${curTab}`,`x=${['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='glwd'?`gw=${glwdMode}`:'',baseMode==='tc'?`tc=${tcMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
 map.on('moveend',updateHash);
 map.on('move zoom resize',()=>{if(regionBoxEl&&regionRect){const a=map.latLngToContainerPoint(regionRect.getNorthWest()),b2=map.latLngToContainerPoint(regionRect.getSouthEast());regionBoxEl.style.left=Math.min(a.x,b2.x)+'px';regionBoxEl.style.top=Math.min(a.y,b2.y)+'px';regionBoxEl.style.width=Math.abs(a.x-b2.x)+'px';regionBoxEl.style.height=Math.abs(a.y-b2.y)+'px';}});
 function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;const q={};h.split('&').forEach(kv=>{const [k,v]=kv.split('=');q[k]=decodeURIComponent(v||'');});
   if(q.b&&document.querySelector(`input[name=base][value=${q.b}]`)){baseMode=q.b;document.querySelector(`input[name=base][value=${q.b}]`).checked=true;}
+  if(q.tc){tcMode=q.tc;document.querySelectorAll('#tcMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.tc));}
   if(q.gw){glwdMode=q.gw;document.querySelectorAll('#glwdMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.gw));}
   if(q.pm)pmMode=q.pm;if(q.co)coMode=q.co;if(q.fm)fmMode=q.fm;if(q.oc){ocoMode=q.oc;document.querySelectorAll('#ocoMode button').forEach(x=>x.classList.toggle('on',x.dataset.m===q.oc));}
   if(q.i!=null&&SL[baseMode]){const el=document.getElementById(SL[baseMode].el);el.value=Math.min(+el.max,Math.max(0,+q.i));syncDates(baseMode);}
@@ -1658,8 +1702,10 @@ function valuesAt(ll){const la=ll.lat,lo=normLng(ll.lng),rows=[];const f=(v,dp,u
   if(baseMode==='pm'){const i=+pmSl.value,c=PM.months[i];rows.push(['GEOS-CF PM₂.₅ '+c.date+' (2°)',f(cellVal(cached('pma'+i,()=>decode16(c.abs)),PM.nx,PM.ny,-32768,10,la,lo,91,-91,-181),1,'µg/m³')],['Anomaly vs 2021–25',f(cellVal(cached('pmn'+i,()=>decode16(c.anom)),PM.nx,PM.ny,-32768,10,la,lo,91,-91,-181),1,'µg/m³')]);}
   if(baseMode==='co'){const i=+coSl.value,c=CO.months[i];const a=cached('coa'+i,()=>decodeU8(c.abs));const v=cellVal(a,CO.nx,CO.ny,0,1,la,lo,90,-90,-180);const an=cellVal(cached('con'+i,()=>decode8(c.anom)),CO.nx,CO.ny,-128,1,la,lo,90,-90,-180);rows.push(['AIRS CO 500 hPa '+c.date+' (1.5°)',f(v,0,'ppb')],['Anomaly vs 2021–25',f(an,0,'ppb')]);}
   if(baseMode==='firem'){const i=+fmSl.value,c=FIREM.months[i];rows.push(['VIIRS fire detections '+c.date+' (2°)',f(cellVal(cached('fma'+i,()=>decode16(c.abs)),FIREM.nx,FIREM.ny,-32768,1,la,lo,90,-90,-180),0)],['Anomaly vs 2021–25',f(cellVal(cached('fmn'+i,()=>decode16(c.anom)),FIREM.nx,FIREM.ny,-32768,1,la,lo,90,-90,-180),0)]);}
+  if(baseMode==='pchl'){const i=+pchlSl.value,c=PCHL.months[i];const v=cellVal(cached('pchl'+i,()=>decode8(c.b64)),PCHL.nx,PCHL.ny,-128,100,la,lo,90,-90,-180);rows.push(['PACE chlorophyll anomaly '+c.date+' (2°)',v==null?'no data':(v>=0?'×':'÷')+Math.pow(10,Math.abs(v)).toFixed(2)]);}
+  if(baseMode==='pndvi'){const i=+pndviSl.value,c=PNDVI.months[i];const v=cellVal(cached('pndvi'+i,()=>decode8(c.b64)),PNDVI.nx,PNDVI.ny,-128,200,la,lo,90,-90,-180);rows.push(['PACE NDVI anomaly '+c.date+' (2°)',v==null?'no data':(v>=0?'+':'')+v.toFixed(3)]);}
   if(baseMode==='glwd'){const fr=cellVal(cached('glwdf',()=>decodeU8(GLWD.frac)),GLWD.nx,GLWD.ny,255,1,la,lo,84,-56,-180);const dm=cellVal(cached('glwdd',()=>decodeU8(GLWD.dom)),GLWD.nx,GLWD.ny,255,1,la,lo,84,-56,-180);rows.push(['GLWD v2 wetland fraction (0.25°)',fr==null?'no data':fr.toFixed(0)+' %'],['Dominant wetland class',dm==null?'none':GLWD.names[String(dm)]||dm]);}
-  if(baseMode==='chl'){const i=+chlSl.value,c=CHL.months[i];const v=cellVal(cached('chl'+i,()=>decode8(c.b64)),CHL.nx,CHL.ny,-128,100,la,lo,90,-90,-180);rows.push(['Chlorophyll anomaly '+c.date+' (2°)',v==null?'no data':(v>=0?'×':'÷')+Math.pow(10,Math.abs(v)).toFixed(2)]);}
+  if(baseMode==='chl'){const i=+chlSl.value,c=CHL.months[i];const v=cellVal(cached('chl'+i,()=>decode8(c.b64)),CHL.nx,CHL.ny,-128,100,la,lo,90,-90,-180);rows.push(['VIIRS chlorophyll anomaly '+c.date+' (2°)',v==null?'no data':(v>=0?'×':'÷')+Math.pow(10,Math.abs(v)).toFixed(2)]);}
   if(baseMode==='sst'){const i=+sstSl.value,c=SST.months[i];rows.push(['SST anomaly '+c.date+' (1°)',f(cellVal(cached('sst8'+i,()=>decode8(c.b64)),SST.nx,SST.ny,-128,20,la,lo,90,-90,-180),2,'°C')]);}
   if(baseMode==='none'&&!rows.length)return null;
   const k=NINO_M[Object.keys(NINO_M).sort().pop()];rows.push(['Niño 3.4 now',(k>0?'+':'')+k.toFixed(2)+' °C']);return rows;}
@@ -1704,6 +1750,7 @@ function fillAsOf(){const ym=(y,m)=>`${MON[m-1]} ${y}`;const latest=net=>{let b=
   if(NETS.NOAAobs.length){const no=latest('NOAAobs');rows.push(['NOAA baseline observatories (in-situ)',ym(...no),`${cnt('NOAAobs',...no)} of ${NETS.NOAAobs.length} sites; Mauna Loa extended with preliminary data`]);}
   rows.push(['OpenAQ PM₂.₅ monitors',ym(...a),`${cnt('OpenAQ',...a)} of ${NETS.OpenAQ.length} sites`]);
   if(NETS.PMEL.length){const pm=latest('PMEL');rows.push(['PMEL moored pCO₂',ym(...pm),`${cnt('PMEL',...pm)} of ${NETS.PMEL.length} buoys`]);}
+  const pc=PCHL.months[PCHL.months.length-1];rows.push(['PACE chlorophyll anomaly',ym(+pc.date.slice(0,4),+pc.date.slice(5,7)),'monthly, OCI']);const pn=PNDVI.months[PNDVI.months.length-1];rows.push(['PACE NDVI anomaly',ym(+pn.date.slice(0,4),+pn.date.slice(5,7)),'monthly, OCI LANDVI']);
   const ch=CHL.months[CHL.months.length-1];rows.push(['VIIRS chlorophyll anomaly',ym(+ch.date.slice(0,4),+ch.date.slice(5,7)),'monthly, NOAA-20']);rows.push(['BGC-Argo floats',BGC.reduce((a,f)=>f.last>a?f.last:a,''),`${BGC.length} floats with a profile in the last two years`]);
   if(NETS.SOCAT.length){const so=latest('SOCAT');rows.push(['SOCAT surface-ocean fCO₂',ym(...so),`${cnt('SOCAT',...so)} of ${NETS.SOCAT.length} cells (v2026 release)`]);}
   const oc=OCO.cycles[OCO.cycles.length-1];rows.push(['OCO-2 XCO₂',fmtD(oc.end),`16-day window from ${fmtD(oc.start)}, ${oc.src.map(s=>SRC[s]||s).join(' + ')}`]);
