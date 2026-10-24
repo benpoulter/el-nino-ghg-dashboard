@@ -42,6 +42,9 @@ def step_noaa():
             sh(f'curl -s -o {D}/noaa_{gas}/{f} {base}{f}')
     sh(f'curl -s "https://gml.noaa.gov/dv/site/?program=ccgg" -o {D}/noaa_sites.html')
     sh(f'curl -s -o {D}/co2_mm_mlo.csv https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_mm_mlo.csv')
+    os.makedirs(f'{D}/noaa_obs',exist_ok=True)
+    for gas in ('co2','ch4'):
+        for st in ('brw','mlo','mko','smo','spo'): sh(f'curl -s -o {D}/noaa_obs/{gas}_{st}.txt https://gml.noaa.gov/aftp/data/trace_gases/{gas}/in-situ/surface/txt/{gas}_{st}_surface-insitu_1_ccgg_MonthlyData.txt')
 
 # ---------------- ICOS (CO2, CH4) via SPARQL + anonymous /cpb ----------------
 Q_ST='''prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
@@ -173,13 +176,46 @@ def step_stations():
             if p[0].isdigit() and (int(p[0]),int(p[1]))>last: add.append([int(p[0]),int(p[1]),float(p[3])])
         if add:
             d.update(metrics([tuple(x) for x in d['series']+add])); d['prelimFrom']=f"{add[0][0]}-{add[0][1]:02d}"
+    # NOAA baseline observatories (continuous in-situ)
+    obs={}
+    for gas in ('co2','ch4'):
+        for st in ('brw','mlo','mko','smo','spo'):
+            f=f'{D}/noaa_obs/{gas}_{st}.txt'
+            if not os.path.exists(f) or os.path.getsize(f)<5000: continue
+            hdr={}; fields=None; pts=[]
+            for line in open(f):
+                if line.startswith('#'):
+                    mm=re.match(r'# (site_name|site_latitude|site_longitude|site_elevation) : (.*)',line.strip())
+                    if mm: hdr[mm.group(1)]=mm.group(2)
+                    continue
+                p=line.split()
+                if fields is None: fields=p; continue
+                d=dict(zip(fields,p))
+                try: y,mo,v=int(d['year']),int(d['month']),float(d['value'])
+                except Exception: continue
+                if not d.get('qcflag','...').startswith('.') or v<=-999: continue
+                if (gas=='co2' and 300<v<600 or gas=='ch4' and 1500<v<2500) and y>=2015: pts.append((y,mo,round(v,2)))
+            if len(pts)<24: continue
+            nm=hdr.get('site_name','').replace(' Atmospheric Baseline Observatory','').replace('Observatory','').strip(); nm={'Barrow':'Utqiaġvik (Barrow)','Tutuila':'American Samoa (Tutuila)'}.get(nm,nm)
+            so=obs.setdefault(st.upper(),dict(id=st.upper(),net='NOAAobs',name=nm,country='United States' if st in ('brw','mlo','mko') else 'American Samoa' if st=='smo' else 'Antarctica',lat=float(hdr['site_latitude']),lon=float(hdr['site_longitude']),elev=float(hdr['site_elevation']),measurement='Continuous in-situ analyser (NOAA GML baseline observatory)',vars={}))
+            so['vars'][gas]=metrics(pts)
+    if 'MLO' in obs and 'co2' in obs['MLO']['vars'] and os.path.exists(f'{D}/co2_mm_mlo.csv'):
+        d=obs['MLO']['vars']['co2']; last=tuple(d['series'][-1][:2]); add=[]
+        for line in open(f'{D}/co2_mm_mlo.csv'):
+            p=line.strip().split(',')
+            if p[0].isdigit() and (int(p[0]),int(p[1]))>last: add.append((int(p[0]),int(p[1]),float(p[3])))
+        if add: d.update(metrics([tuple(x) for x in d['series']]+add)); d['prelimFrom']=f"{add[0][0]}-{add[0][1]:02d}"
     icos=json.load(open(f'{D}/icos.json')); aq=json.load(open(f'{D}/aq.json'))
     socat=json.load(open(f'{D}/socat.json')) if os.path.exists(f'{D}/socat.json') else None
     if socat is None:
         try:
             mm=re.search(r'<script id="d-st" type="application/json" data-gz="1">(.*?)</script>',open(PAGE).read(),re.S); socat=json.loads(gzip.decompress(base64.b64decode(mm.group(1)))).get('socat',[])
         except Exception: socat=[]
-    json.dump(dict(icos=list(icos.values()),noaa=list(noaa.values()),aq=aq,socat=socat),open(f'{D}/stations.json','w'))
+    pmel=[]
+    try:
+        mm=re.search(r'<script id="d-st" type="application/json" data-gz="1">(.*?)</script>',open(PAGE).read(),re.S); pmel=json.loads(gzip.decompress(base64.b64decode(mm.group(1)))).get('pmel',[])
+    except Exception: pass
+    json.dump(dict(icos=list(icos.values()),noaa=list(noaa.values()),noaaobs=list(obs.values()),aq=aq,socat=socat,pmel=pmel),open(f'{D}/stations.json','w'))
 
 # ---------------- OCO-2 Fwd_FP / Lite 16-day windows ----------------
 def step_oco2():
