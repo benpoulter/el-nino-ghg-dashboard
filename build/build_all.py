@@ -418,6 +418,9 @@ def step_registries():
     import collections; cnt=collections.Counter(x['id'] for x in tc); nn={}
     for x in tc:
         if cnt[x['id']]>1: nn[x['id']]=nn.get(x['id'],0)+1; x['id']=f"{x['id']}{nn[x['id']]:02d}"
+    cnt2=collections.Counter(x['id'] for x in ccu); n2={}
+    for x in ccu:
+        if cnt2[x['id']]>1: n2[x['id']]=n2.get(x['id'],0)+1; x['id']=f"{x['id']}-{x['kind'][0]}{n2[x['id']]}"
     json.dump(dict(TCCON=tc,COCCON=ccu),open(f'{D}/col.json','w')); print('TCCON',len(tc),'COCCON',len(ccu))
 def step_socat():
     """SOCAT monthly 1-degree gridded fCO2 (annual release) -> 4-degree cells with monthly series since 2010."""

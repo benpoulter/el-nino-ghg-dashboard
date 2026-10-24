@@ -26,7 +26,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{const b=document.getElementById('box');b.classList.remove('hidden');b.classList.add('open');}")
     pg.click('#tabs button[data-tab=sites]')
     counts=pg.evaluate("()=>({F:JSON.parse(document.getElementById('d-flux')?'[]':'[]')})")
-    for net in ['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER']:
+    for net in ['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER','PAF']:
         try:
             pg.click(f'.fluxCk[data-net="{net}"]'); pg.wait_for_timeout(700)
             exp=pg.evaluate(f"()=>{{const t=document.querySelector('.fluxCk[data-net=\"{net}\"]').closest('.hd').querySelector('small').textContent;return parseInt(t)||0}}")
@@ -34,6 +34,15 @@ with sync_playwright() as p:
             if exp and got<exp: errs.append(f'{net}: only {got} of {exp} sites rendered')
             pg.click(f'.fluxCk[data-net="{net}"]'); pg.wait_for_timeout(200)
         except Exception as e: errs.append(f'{net} layer check failed: {str(e)[:80]}')
+    # with a chart open, the bottom controls must stay clickable (not covered by the chart panel)
+    pg.click('#tLayers') if pg.evaluate("()=>!document.getElementById('box').classList.contains('hidden')") else None
+    pg.evaluate("()=>{const m=document.querySelectorAll('.leaflet-stations-pane .leaflet-marker-icon');m[3]&&m[3].click()}"); pg.wait_for_timeout(800)
+    cov=pg.evaluate("()=>{const c=document.getElementById('chart').getBoundingClientRect();return ['#searchBox','#statsBtn'].filter(s=>{const r=document.querySelector(s).getBoundingClientRect();return r.bottom>c.top+2&&r.top<c.bottom&&getComputedStyle(document.querySelector(s)).display!=='none'})}")
+    if cov: errs.append(f'covered by the chart panel: {cov}')
+    pg.evaluate("()=>document.getElementById('cClose').click()")
+    # NOAA observatories must be drawn above the flask triangles
+    z=pg.evaluate("()=>{const ms=[...document.querySelectorAll('.leaflet-stations-pane .leaflet-marker-icon')];const o=ms.filter(e=>e.innerHTML.includes('M9 16 16.4'));return o.length?Math.min(...o.map(e=>+e.style.zIndex))-Math.max(...ms.filter(e=>!e.innerHTML.includes('M9 16 16.4')).map(e=>+e.style.zIndex||0)):null}")
+    if z is not None and z<0: errs.append('NOAA observatory markers drawn below other stations')
     # a stale saved panel position must not push the panel off screen
     pg.evaluate("()=>localStorage.setItem('layersPos',JSON.stringify({l:'9999px',t:'-50px'}))"); pg.reload(); pg.wait_for_function("()=>!document.getElementById('splash')",timeout=60000); pg.click('#tLayers'); pg.wait_for_timeout(300)
     r=pg.evaluate("()=>{const b=document.getElementById('box');const q=b.getBoundingClientRect();return [q.left,q.top,q.right,innerWidth,getComputedStyle(b).display]}")
