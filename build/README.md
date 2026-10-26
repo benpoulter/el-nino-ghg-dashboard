@@ -64,3 +64,9 @@ Chromium before the workflow commits; the `refresh.yml.example` pip line install
 
 ## Other flux towers
 Non-FLUXNET towers live in the page as the `d-other` JSON block (id, name, country, lat, lon, elev, pi, began, active, veg, sensors, note). To add a site, append an object to that block in `dashboard-single.html` and re-run `split_page.py`.
+
+## Failure handling
+`run_all.sh` treats data-source steps as non-fatal: if a provider is down (e.g. the OpenAQ API returning HTTP 500), the step
+is retried with backoff inside `http_get`, and if it still fails it is listed in `failed_steps.txt`, flagged as a warning
+annotation on the Actions run, and the page keeps that layer's previous data. Only `assemble`, `test` and `split` stop the run.
+OpenAQ series are re-fetched incrementally once a week per site (newest months only), new sites first.

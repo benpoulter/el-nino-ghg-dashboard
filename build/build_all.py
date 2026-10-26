@@ -22,6 +22,18 @@ MONTHS=_months()                       # last 13 calendar months ending in the c
 os.environ['MONTHS_JSON']=json.dumps(MONTHS)
 SNAPSHOT=dt.date.today().strftime('%-d %b %Y')
 def sh(cmd): subprocess.run(cmd,shell=True,check=True)
+def http_get(url,tries=5,**kw):
+    """requests.get with retries and backoff on 5xx, 429 and network errors (data providers have transient outages)."""
+    import requests, time
+    kw.setdefault('timeout',120); last=None
+    for k in range(tries):
+        try:
+            r=requests.get(url,**kw)
+            if r.status_code<500 and r.status_code!=429: return r
+            last=f'HTTP {r.status_code}'
+        except requests.RequestException as e: last=str(e)[:120]
+        wait=min(120,5*2**k); print(f'  retry {k+1}/{tries} in {wait}s: {url.split("?")[0]} ({last})',flush=True); time.sleep(wait)
+    raise RuntimeError(f'{url.split("?")[0]} failed after {tries} attempts: {last}')
 import time
 _T0=float(os.environ.get('BUILD_START',time.time())); _BUDGET=float(os.environ.get('BUILD_BUDGET_MIN','150'))*60
 def over_budget(reserve_min=25):
@@ -115,7 +127,7 @@ def step_openaq():
     K=os.environ['OPENAQ_API_KEY']; H={'X-API-Key':K}
     allr=[]
     for page in range(1,30):
-        r=requests.get('https://api.openaq.org/v3/locations',params=dict(parameters_id=2,monitor='true',limit=1000,page=page),headers=H); r.raise_for_status()
+        r=http_get('https://api.openaq.org/v3/locations',params=dict(parameters_id=2,monitor='true',limit=1000,page=page),headers=H); r.raise_for_status()
         res=r.json()['results']; allr+=res
         if len(res)<1000: break
         time.sleep(1.2)
@@ -127,19 +139,30 @@ def step_openaq():
         if k not in cells or first<cells[k][0]: cells[k]=(first,x)
     sel=[v[1] for v in cells.values()]
     sp=f'{D}/openaq_series.json'; ser=json.load(open(sp)) if os.path.exists(sp) else {}
-    for i,x in enumerate(sel):
+    sm=f'{D}/openaq_fetched.json'; fetched=json.load(open(sm)) if os.path.exists(sm) else {}
+    today=dt.date.today().isoformat(); stale=(dt.date.today()-dt.timedelta(days=6)).isoformat()
+    # new sites first, then the sites whose series were fetched longest ago
+    order=sorted(sel,key=lambda x:(str(x['id']) in ser, fetched.get(str(x['id']),'0000')))
+    done=0
+    for i,x in enumerate(order):
         lid=str(x['id'])
-        if lid in ser: continue
-        if over_budget(60): print('OpenAQ: budget reached, remaining sites deferred'); break
-        sid=[s['id'] for s in x['sensors'] if s['parameter']['id']==2][0]
-        for t in range(3):
-            r=requests.get(f'https://api.openaq.org/v3/sensors/{sid}/days/monthly',params=dict(limit=100,date_from='2019-01-01'),headers=H)
-            if r.status_code==200: ser[lid]=[(m['period']['datetimeFrom']['local'][:7],m['value']) for m in r.json().get('results',[])]; break
-            elif r.status_code==429: time.sleep(10)
-            else: ser[lid]=[]; break
-        time.sleep(1.05)
-        if i%50==0: json.dump(ser,open(sp,'w')); print(i,len(sel),flush=True)
-    json.dump(ser,open(sp,'w'))
+        if lid in ser and fetched.get(lid,'0000')>=stale: continue
+        if over_budget(60): print('OpenAQ: budget reached, remaining sites deferred to the next run'); break
+        sid=[q['id'] for q in x['sensors'] if q['parameter']['id']==2][0]
+        old=dict(ser.get(lid,[])); frm='2019-01-01'
+        if old: y,m=map(int,max(old)[:7].split('-')); m-=2
+        if old:
+            while m<1: m+=12; y-=1
+            frm=f'{y}-{m:02d}-01'
+        try: r=http_get(f'https://api.openaq.org/v3/sensors/{sid}/days/monthly',params=dict(limit=100,date_from=frm),headers=H)
+        except RuntimeError as e: print('OpenAQ sensor',sid,e); continue
+        if r.status_code==200:
+            for mm in r.json().get('results',[]): old[mm['period']['datetimeFrom']['local'][:7]]=mm['value']
+            ser[lid]=sorted(old.items()); fetched[lid]=today
+        elif lid not in ser: ser[lid]=[]
+        done+=1; time.sleep(1.05)
+        if done%50==0: json.dump(ser,open(sp,'w')); json.dump(fetched,open(sm,'w')); print(done,'fetched',flush=True)
+    json.dump(ser,open(sp,'w')); json.dump(fetched,open(sm,'w')); print('OpenAQ series fetched this run:',done)
     out=[]
     for x in sel:
         s=ser.get(str(x['id']))
@@ -300,7 +323,7 @@ def step_enso():
     # CPC ENSO discussion: status + synopsis
     try:
         import requests
-        txt=requests.get('https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso_advisory/ensodisc.shtml',timeout=60).text
+        txt=http_get('https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso_advisory/ensodisc.shtml').text
         t=html.unescape(re.sub(r'\s+',' ',re.sub('<[^>]+>',' ',txt)))
         st=re.search(r'ENSO Alert System Status: ([^S]*?) Synopsis: (.*?)(?: \w+ [Cc]onditions| During)',t); iss=re.search(r'issued by CLIMATE PREDICTION CENTER/NCEP[^0-9]*?(\d{1,2} \w+ 20\d\d)',t)
         if st: json.dump(dict(status=st.group(1).strip(),synopsis=st.group(2).strip()[:400],issued=iss.group(1) if iss else '',url='https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso_advisory/ensodisc.shtml'),open(f'{D}/outlook.json','w'))
@@ -356,7 +379,7 @@ def step_registries():
     from concurrent.futures import ThreadPoolExecutor
     UA={'User-Agent':'Mozilla/5.0 (dashboard-build)'}
     # --- FLUXNET
-    lists={n:requests.get(f'https://amfcdn.lbl.gov/api/v1/site_display/FLUXNET/{n}',headers=UA,timeout=60).json() for n in ['FLUXNET2015','FLUXNET-CH4']}
+    lists={n:http_get(f'https://amfcdn.lbl.gov/api/v1/site_display/FLUXNET/{n}',headers=UA).json() for n in ['FLUXNET2015','FLUXNET-CH4']}
     ids=sorted(set(x['SITE_ID'] for L in lists.values() for x in L)); os.makedirs('flux_pages',exist_ok=True)
     def get(sid):
         f=f'flux_pages/{sid}.html'
@@ -386,8 +409,8 @@ def step_registries():
         flux[n]=rows
     json.dump(flux,open(f'{D}/flux.json','w')); print('FLUXNET',{k:len(v) for k,v in flux.items()})
     # --- TCCON
-    sites=requests.get('https://tccondata.org/3a-std-public/tccon-site-locations.json',headers=UA,timeout=60).json()
-    home=html.unescape(re.sub(r'\s+',' ',re.sub('<[^>]+>','|',requests.get('https://tccondata.org/',headers=UA,timeout=60).text)))
+    sites=http_get('https://tccondata.org/3a-std-public/tccon-site-locations.json',headers=UA).json()
+    home=html.unescape(re.sub(r'\s+',' ',re.sub('<[^>]+>','|',http_get('https://tccondata.org/',headers=UA).text)))
     latest={m.group(1):(m.group(2),m.group(3)) for m in re.finditer(r'\[([a-z]+\d\d)\][ |/]*(\d{4}-\d{2}-\d{2})[ |/]*(\d{4}-\d{2}-\d{2})',home)}
     tc=[]
     for x in sites:
@@ -397,7 +420,7 @@ def step_registries():
         active=(x['end_date'] is None) and (en>=(dt.date.today()-dt.timedelta(days=400)).isoformat() if en else True)
         tc.append(dict(id=x['site_id'],name=x['name'],location=x['location'],lat=x['latitude'],lon=x['longitude'],start=x['start_date'],latest=en,active=active,url='https://tccondata.org/'))
     # --- COCCON
-    page=requests.get('https://www.coccon.kit.edu/72.php',headers=UA,timeout=60).text; cc=[]
+    page=http_get('https://www.coccon.kit.edu/72.php',headers=UA).text; cc=[]
     for tb in re.findall(r'<table.*?</table>',page,re.S):
         rows=[[html.unescape(re.sub('<[^>]+>',' ',c)) for c in re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>',r,re.S)] for r in re.findall(r'<tr.*?</tr>',tb,re.S)]
         hdr=[re.sub(r'\s+',' ',c).strip() for c in rows[0]] if rows else []

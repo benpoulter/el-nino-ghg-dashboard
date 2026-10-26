@@ -6,3 +6,4 @@ build/airs/*.png
 build/firesm/
 build/ndvi_hi/
 build/oco2dl/
+build/failed_steps.txt
