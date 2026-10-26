@@ -26,7 +26,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{const b=document.getElementById('box');b.classList.remove('hidden');b.classList.add('open');}")
     pg.click('#tabs button[data-tab=sites]')
     counts=pg.evaluate("()=>({F:JSON.parse(document.getElementById('d-flux')?'[]':'[]')})")
-    for net in ['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER','PAF','SAEON']:
+    for net in ['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER','PAF','SAEON','LSCE']:
         try:
             pg.click(f'.fluxCk[data-net="{net}"]'); pg.wait_for_timeout(700)
             exp=pg.evaluate(f"()=>{{const t=document.querySelector('.fluxCk[data-net=\"{net}\"]').closest('.hd').querySelector('small').textContent;return parseInt(t)||0}}")
