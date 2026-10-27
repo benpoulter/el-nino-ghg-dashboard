@@ -43,6 +43,14 @@ with sync_playwright() as p:
     # NOAA observatories must be drawn above the flask triangles
     z=pg.evaluate("()=>{const ms=[...document.querySelectorAll('.leaflet-stations-pane .leaflet-marker-icon')];const o=ms.filter(e=>e.innerHTML.includes('M9 16 16.4'));return o.length?Math.min(...o.map(e=>+e.style.zIndex))-Math.max(...ms.filter(e=>!e.innerHTML.includes('M9 16 16.4')).map(e=>+e.style.zIndex||0)):null}")
     if z is not None and z<0: errs.append('NOAA observatory markers drawn below other stations')
+    # every panel's close button must be reachable (not covered by the indicator strip or other panels)
+    for opener,closer in [('#statsBtn','#statsClose'),('#lList','#slistClose'),('#aboutOpen','#aboutClose')]:
+        try:
+            pg.click(opener); pg.wait_for_timeout(300)
+            hit=pg.evaluate(f"()=>{{const b=document.querySelector('{closer}').getBoundingClientRect();const e=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);return !!e&&(e.closest('{closer}')!==null)}}")
+            if not hit: errs.append(f'{closer} is covered by another element')
+            pg.evaluate(f"()=>document.querySelector('{closer}').click()"); pg.wait_for_timeout(150)
+        except Exception as e: errs.append(f'{opener}/{closer} check failed: {str(e)[:60]}')
     # indicator cards rendered with values and sparklines
     kc=pg.evaluate("()=>[...document.querySelectorAll('.kv')].filter(e=>/[0-9]/.test(e.textContent)).length")
     if kc<4: errs.append(f'only {kc} of 4 indicator cards have values')

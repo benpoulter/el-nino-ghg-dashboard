@@ -899,6 +899,10 @@ body.stripOff .stripToggle{position:fixed;top:calc(env(safe-area-inset-top,0px) 
 .showl{top:calc(env(safe-area-inset-top,0px) + 56px + var(--strip)) !important}
 .box{top:calc(env(safe-area-inset-top,0px) + 80px + var(--strip))}
 .lefttools{top:calc(env(safe-area-inset-top,0px) + 56px + 200px + var(--strip))}
+.stats-p,.slist{top:calc(env(safe-area-inset-top,0px) + 80px + var(--strip))}
+.box,.slist{max-height:calc(100% - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 140px - var(--strip))}
+body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 140px - 290px - var(--strip))}
+@media (max-width:800px){.box,.slist{top:calc(env(safe-area-inset-top,0px) + 56px + var(--strip))}.slist{max-height:calc(50vh - var(--strip))}}
 #km-body h4{margin:16px 0 4px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-light)}
 #km-body li{margin:2px 0}
 .kclose{border:1px solid var(--panel-border);background:var(--surface);color:var(--text-body);padding:4px 12px;border-radius:3px;cursor:pointer}
