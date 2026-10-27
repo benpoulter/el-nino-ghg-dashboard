@@ -796,6 +796,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 @keyframes spin{to{transform:rotate(360deg)}}
 .foot a{color:var(--text-body);text-decoration:none}
 .box h2{font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-light);margin:12px 16px 4px}
+.story{display:flex;align-items:center;gap:4px;padding:8px 12px 6px;background:var(--panel);border-bottom:1px solid var(--panel-border)}
+.story span{font-size:10.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-light);margin-right:4px}
+.story button{flex:1;border:1px solid var(--panel-border);background:var(--surface);border-radius:14px;padding:4px 2px;font:inherit;font-size:11.5px;font-weight:600;color:var(--text-body);cursor:pointer;white-space:nowrap}
+.story button.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .tabs{display:flex;border-bottom:1px solid var(--panel-border);background:var(--panel);position:sticky;top:45px;z-index:2}
 .tabs button{flex:1;border:0;border-bottom:3px solid transparent;background:transparent;padding:9px 0 7px;font:inherit;font-size:13px;font-weight:600;color:var(--text-light);cursor:pointer}
 .tabs button.on{color:var(--blue);border-bottom-color:var(--blue)}
@@ -900,6 +904,7 @@ body.chartOpen #hover{bottom:88px}
 <aside class="box hidden" id="box">
   <div class="ttl" id="boxTtl"><span><i class="grip"></i>Layers</span><button id="boxClose" title="Close">×</button></div>
   <div class="mbtns"><button id="mAbout">About</button><button id="mStats">Statistics</button><button id="mList">Station list</button><button id="mDl">Download CSV</button><button id="mContact">Contact</button></div>
+  <div class="story" id="story"><span>Story</span><button data-s="nino" title="The El Niño: SST anomaly, Pacific moorings and NOAA stations, Pacific-centred">El Niño</button><button data-s="land" title="Land response: MODIS NDVI anomaly and flux towers across the tropics">Land</button><button data-s="co2" title="Atmospheric CO₂: OCO-2 zonal anomaly and stations by 12-month growth">CO₂</button><button data-s="ch4" title="Methane and wetlands: GLWD wetlands, CH₄ stations and CH₄ flux towers">Methane</button></div>
   <div class="tabs" id="tabs"><button data-tab="sites" class="on">Sites</button><button data-tab="bases">Basemaps</button></div>
   <div class="tab" id="tab-sites">
   <h2>Stations</h2>
@@ -1119,6 +1124,7 @@ body.chartOpen #hover{bottom:88px}
   <h2>Regions</h2>
   <div class="opt"><div class="body" style="display:block;padding:6px 16px 10px"><div class="presets" id="presets"></div><p class="note">One-click region comparisons for the classic ENSO teleconnection areas; or draw your own with the dashed-box tool.</p></div></div>
   </div>
+  <p class="note" style="margin:10px 16px 4px">The Story buttons at the top of this panel set up four ready-made views — the El Niño itself, the land response, atmospheric CO₂, and methane and wetlands — including basemap, layers, colouring, latest dates and map frame; the page opens on “El Niño”. Change anything afterwards as usual.</p>
   <p class="note" style="margin:10px 16px 4px">The map continues east of the dateline so the Pacific can be viewed whole: use the ⊕ button on the tool strip for a Pacific-centred view, and the globe button to return to the Atlantic-centred view.</p>
   <p class="note" style="margin:10px 16px 4px"><b style="color:var(--text)">Contact:</b> <a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">ben@sparkclimate.org</a> · <a href="https://sparkclimate.org" target="_blank" rel="noopener">Spark Climate Solutions</a></p>
   <p class="note" style="margin:10px 16px 4px"><span class="deskOnly">Drag this panel by its title bar; double-click the title to snap it back. Keys: <span class="kbd">←</span><span class="kbd">→</span> step the active basemap date, <span class="kbd">+</span><span class="kbd">−</span> zoom, <span class="kbd">R</span> region tool, <span class="kbd">Esc</span> close. </span>The URL updates as you move, so you can copy it to share a view. Click a station for its time series. Data are an embedded snapshot; see each layer’s note and the About panel for dates and caveats.</p>
@@ -1372,7 +1378,7 @@ document.querySelectorAll('.opt .hd').forEach(h=>h.addEventListener('click',e=>{
   o.classList.toggle('open');
 }));
 document.getElementById('panelBtn').addEventListener('click',()=>document.getElementById('box').classList.toggle('open'));
-const boxEl=document.getElementById('box');let boxWasOpen=false;let ensureVisible=()=>{};
+const boxEl=document.getElementById('box');let boxWasOpen=false;let curStory='';let ensureVisible=()=>{};
 let curTab='sites';
 function setTab(k){curTab=k;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===k));document.getElementById('tab-sites').style.display=k==='sites'?'':'none';document.getElementById('tab-bases').style.display=k==='bases'?'':'none';try{localStorage.setItem('layersTab',k);}catch(_){}if(typeof renderEnso==='function'&&k==='bases')renderEnso();}
 document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
@@ -1799,7 +1805,7 @@ function showRegion(b){const el=document.getElementById('chart');el.classList.ad
 
 /* ---------- permalink ---------- */
 let hashBusy=false;
-updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ','SOCAT','PMEL','NOAAobs'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`t=${curTab}`,`x=${['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER','PAF','SAEON','LSCE'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='glwd'?`gw=${glwdMode}`:'',baseMode==='tc'?`tc=${tcMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
+updateHash=function(){if(hashBusy)return;const c=map.getCenter();const s=SL[baseMode];const parts=[`b=${baseMode}`,s?`i=${document.getElementById(s.el).value}`:'',`v=${c.lat.toFixed(2)},${c.lng.toFixed(2)},${map.getZoom()}`,`m=${anomMode}`,`s=${['ICOS','NOAA','OpenAQ','SOCAT','PMEL','NOAAobs'].map(n=>document.querySelector(`.netCk[data-net=${n}]`).checked?1:0).join('')}`,`g=${sel.ICOS},${sel.NOAA}`,`f=${document.getElementById('ckFire').checked?1:0}`,`t=${curTab}`,curStory?`st=${curStory}`:'',`x=${['FLUXNET2015','FLUXNET-CH4','TCCON','COCCON','BGC','OTHER','PAF','SAEON','LSCE'].map(n=>document.querySelector(`.fluxCk[data-net="${n}"]`).checked?1:0).join('')}`,baseMode==='pm'?`pm=${pmMode}`:'',baseMode==='glwd'?`gw=${glwdMode}`:'',baseMode==='tc'?`tc=${tcMode}`:'',baseMode==='oco2'?`oc=${ocoMode}`:'',baseMode==='co'?`co=${coMode}`:'',baseMode==='firem'?`fm=${fmMode}`:''].filter(Boolean);history.replaceState(null,'','#'+parts.join('&'));}
 map.on('moveend',updateHash);
 map.on('move zoom resize',()=>{if(regionBoxEl&&regionRect){const a=map.latLngToContainerPoint(regionRect.getNorthWest()),b2=map.latLngToContainerPoint(regionRect.getSouthEast());regionBoxEl.style.left=Math.min(a.x,b2.x)+'px';regionBoxEl.style.top=Math.min(a.y,b2.y)+'px';regionBoxEl.style.width=Math.abs(a.x-b2.x)+'px';regionBoxEl.style.height=Math.abs(a.y-b2.y)+'px';}});
 function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;const q={};h.split('&').forEach(kv=>{const [k,v]=kv.split('=');q[k]=decodeURIComponent(v||'');});
@@ -1819,7 +1825,34 @@ function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;co
   showBase();
   if(q.v){const [la,lo,z]=q.v.split(',').map(Number);if(isFinite(la)&&isFinite(lo)&&isFinite(z))map.setView([la,lo],Math.max(map.getMinZoom(),z),{animate:false});}
   hashBusy=false;updateHash();}
+const INIT_HASH=location.hash;
 readHash();
+
+/* ---------- story presets ---------- */
+const STORIES={
+  nino:{base:'sst',nets:['NOAA','NOAAobs','PMEL'],flux:[],fire:false,mode:'detr',gas:'co2',tab:'bases',frame:[[-42,110],[42,300]]},
+  land:{base:'ndvi',nets:[],flux:['FLUXNET2015','PAF','SAEON'],fire:false,mode:'detr',gas:'co2',tab:'sites',frame:[[-36,-90],[30,155]]},
+  co2:{base:'oco2',oco:'zonal',nets:['ICOS','NOAA','NOAAobs'],flux:[],fire:false,mode:'yoy',gas:'co2',tab:'sites',frame:null},
+  ch4:{base:'glwd',glwd:'frac',nets:['ICOS','NOAA','NOAAobs'],flux:['FLUXNET-CH4','PAF'],fire:false,mode:'detr',gas:'ch4',tab:'sites',frame:null}};
+function setCk(el,on){if(el&&el.checked!==on){el.checked=on;el.dispatchEvent(new Event('change'));}}
+function applyStory(k){const S=STORIES[k];if(!S)return;hashBusy=true;
+  const SRC={sst:SST.months,pm:PM.months,co:CO.months,firem:FIREM.months};
+  for(const s in SL){const el=document.getElementById(SL[s].el);let i=+el.max;const arr=SRC[s];if(arr){while(i>0&&arr[i]&&arr[i].partial)i--;}el.value=i;}   // latest complete month where months can be partial
+  if(S.oco) document.querySelector(`#ocoMode button[data-m=${S.oco}]`).click();
+  if(S.glwd) document.querySelector(`#glwdMode button[data-m=${S.glwd}]`).click();
+  const r=document.querySelector(`input[name=base][value=${S.base}]`);r.checked=true;baseMode=S.base;showBase();
+  document.querySelectorAll('.netCk').forEach(ck=>setCk(ck,S.nets.includes(ck.dataset.net)));
+  for(const net of ['ICOS','NOAA','NOAAobs']){const g=document.querySelector(`input[name=var${net}][value=${S.gas}]`);if(g&&!g.checked){g.checked=true;g.dispatchEvent(new Event('change'));}}
+  document.querySelectorAll('.fluxCk').forEach(ck=>setCk(ck,S.flux.includes(ck.dataset.net)));
+  setCk(document.getElementById('ckFire'),S.fire);
+  document.querySelector(`#anomMode button[data-m=${S.mode}]`).click();
+  setTab(S.tab);
+  if(S.frame) map.fitBounds(S.frame,{animate:false}); else fit();
+  curStory=k;document.querySelectorAll('#story button').forEach(b=>b.classList.toggle('on',b.dataset.s===k));
+  hashBusy=false;updateHash();}
+document.querySelectorAll('#story button').forEach(b=>b.addEventListener('click',()=>applyStory(b.dataset.s)));
+if(!INIT_HASH.slice(1)) applyStory('nino');
+else{const m=INIT_HASH.match(/(?:^#|&)st=(\w+)/);if(m&&STORIES[m[1]]){curStory=m[1];document.querySelectorAll('#story button').forEach(b=>b.classList.toggle('on',b.dataset.s===curStory));updateHash();}}
 
 /* ---------- keyboard ---------- */
 document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;const s=SL[baseMode];
