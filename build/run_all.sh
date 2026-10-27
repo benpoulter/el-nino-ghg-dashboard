@@ -7,7 +7,7 @@ set -uo pipefail
 cd "$(dirname "$0")"
 export BUILD_START=${BUILD_START:-$(date +%s)} BUILD_BUDGET_MIN=${BUILD_BUDGET_MIN:-150}
 export GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-eodata.dataspace.copernicus.eu} AWS_VIRTUAL_HOSTING=FALSE AWS_HTTPS=YES
-STEPS=${STEPS:-noaa icos openaq stations oco2 modis s3ndvi geoscf gibs sst enso fires assemble test split}
+STEPS=${STEPS:-noaa icos openaq stations oco2 modis s3ndvi geoscf gibs sst enso cards fires assemble test split}
 CRITICAL=" assemble test split "
 : > failed_steps.txt
 for s in $STEPS; do

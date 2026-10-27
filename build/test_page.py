@@ -43,6 +43,9 @@ with sync_playwright() as p:
     # NOAA observatories must be drawn above the flask triangles
     z=pg.evaluate("()=>{const ms=[...document.querySelectorAll('.leaflet-stations-pane .leaflet-marker-icon')];const o=ms.filter(e=>e.innerHTML.includes('M9 16 16.4'));return o.length?Math.min(...o.map(e=>+e.style.zIndex))-Math.max(...ms.filter(e=>!e.innerHTML.includes('M9 16 16.4')).map(e=>+e.style.zIndex||0)):null}")
     if z is not None and z<0: errs.append('NOAA observatory markers drawn below other stations')
+    # indicator cards rendered with values and sparklines
+    kc=pg.evaluate("()=>[...document.querySelectorAll('.kv')].filter(e=>/[0-9]/.test(e.textContent)).length")
+    if kc<4: errs.append(f'only {kc} of 4 indicator cards have values')
     # a stale saved panel position must not push the panel off screen
     pg.evaluate("()=>localStorage.setItem('layersPos',JSON.stringify({l:'9999px',t:'-50px'}))"); pg.reload(); pg.wait_for_function("()=>!document.getElementById('splash')",timeout=60000); pg.click('#tLayers'); pg.wait_for_timeout(300)
     r=pg.evaluate("()=>{const b=document.getElementById('box');const q=b.getBoundingClientRect();return [q.left,q.top,q.right,innerWidth,getComputedStyle(b).display]}")

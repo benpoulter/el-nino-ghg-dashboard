@@ -466,6 +466,14 @@ def step_socat():
             clat=float(lat[iy*C:(iy+1)*C].mean()); clon=float(lon[ix*C:(ix+1)*C].mean())
             out.append(dict(id=f"S{iy:02d}{ix:02d}",name=f"SOCAT cell {abs(clat):.0f}°{'N' if clat>=0 else 'S'} {abs(clon):.0f}°{'E' if clon>=0 else 'W'}",net='SOCAT',country='',lat=round(clat,2),lon=round(clon,2),nmonths=int(np.isfinite(m).sum()),nobs=int(tot.sum()),vars={'fco2':metrics(ser)}))
     json.dump(out,open(f'{D}/socat.json','w')); print('SOCAT cells',len(out))
+def step_cards():
+    """Headline indicator cards: ERA5 daily global temperature + NOAA global CO2/CH4/N2O and Mauna Loa weekly CO2."""
+    os.makedirs(f'{D}/cards',exist_ok=True)
+    for name,url in [('t2m.csv','https://sites.ecmwf.int/data/climatepulse/data/series/era5_daily_series_2t_global.csv'),
+                     ('co2_gl.csv','https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_mm_gl.csv'),('ch4_gl.csv','https://gml.noaa.gov/webdata/ccgg/trends/ch4/ch4_mm_gl.csv'),
+                     ('n2o_gl.csv','https://gml.noaa.gov/webdata/ccgg/trends/n2o/n2o_mm_gl.csv'),('co2_wk_mlo.csv','https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv')]:
+        r=http_get(url); r.raise_for_status(); open(f'{D}/cards/{name}','w').write(r.text)
+    sh(f'{sys.executable} cards.py {D}/cards {D}/cards.json')
 def step_fires():
     pts=[]
     for u in ('https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv','https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv'):
@@ -580,6 +588,8 @@ def replace_data_blocks(page):
     if os.path.exists(f'{D}/col.json'):
         cj=json.load(open(f'{D}/col.json'))
         if len(cj.get('TCCON',[]))>20 and len(cj.get('COCCON',[]))>20: t=re.sub(r'<script id="d-col" type="application/json">.*?</script>',lambda m:'<script id="d-col" type="application/json">'+json.dumps(cj,separators=(',',':'))+'</script>',t,flags=re.S)
+    if os.path.exists(f'{D}/cards.json'):
+        t=re.sub(r'<script id="d-cards" type="application/json">.*?</script>',lambda m:'<script id="d-cards" type="application/json">'+open(f'{D}/cards.json').read()+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/outlook.json'):
         t=re.sub(r'<script id="d-outlook" type="application/json">.*?</script>',lambda m:'<script id="d-outlook" type="application/json">'+open(f'{D}/outlook.json').read()+'</script>',t,flags=re.S)
     for id_,f in blocks.items():

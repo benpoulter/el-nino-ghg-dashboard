@@ -880,6 +880,30 @@ body.chartOpen #hover{bottom:88px}
   .leaflet-top.leaflet-left{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);right:10px}
   .modal{padding:0}.modal .mbox{border-radius:0;max-height:100%;padding:20px}
 }
+
+body{--strip:96px}
+body.stripOff{--strip:0px}
+.strip{position:fixed;top:calc(env(safe-area-inset-top,0px) + 56px);left:0;right:0;height:var(--strip);display:flex;gap:10px;padding:8px 54px 8px 14px;box-sizing:border-box;background:linear-gradient(var(--nav-bg),color-mix(in srgb,var(--nav-bg) 88%,transparent));border-bottom:1px solid var(--panel-border);z-index:1150;overflow:hidden}
+body.stripOff .strip{height:0;padding:0;border:0}
+.kcard{position:relative;flex:1 1 0;min-width:0;display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--panel-border);border-radius:4px;padding:6px 10px 4px;cursor:pointer;overflow:hidden}
+.kcard:hover{border-color:var(--blue)}
+.kl{font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv{font-size:19px;font-weight:700;color:var(--text);line-height:1.25;white-space:nowrap}
+.kv small{font-size:11px;font-weight:600;color:var(--text-light);margin-left:4px}
+.ks{font-size:10.5px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:1}
+.kt{flex:1 1 auto;min-width:0}
+.kc{flex:0 0 34%;width:34%;height:54px;opacity:.95}
+.kv.up{color:#b2182b}.kv.dn{color:#2166ac}
+.stripToggle{position:absolute;right:12px;top:8px;width:30px;height:24px;border:1px solid var(--panel-border);background:var(--surface);color:var(--text-light);border-radius:3px;cursor:pointer;font-size:12px}
+body.stripOff .stripToggle{position:fixed;top:calc(env(safe-area-inset-top,0px) + 60px);right:62px;z-index:1160}
+.showl{top:calc(env(safe-area-inset-top,0px) + 56px + var(--strip)) !important}
+.box{top:calc(env(safe-area-inset-top,0px) + 80px + var(--strip))}
+.lefttools{top:calc(env(safe-area-inset-top,0px) + 56px + 200px + var(--strip))}
+#km-body h4{margin:16px 0 4px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-light)}
+#km-body li{margin:2px 0}
+.kclose{border:1px solid var(--panel-border);background:var(--surface);color:var(--text-body);padding:4px 12px;border-radius:3px;cursor:pointer}
+@media (min-width:801px){.tools{top:calc(env(safe-area-inset-top,0px) + 80px + var(--strip))}}
+@media (max-width:800px){body{--strip:62px}.strip{padding:6px 44px 6px 8px;gap:6px;overflow-x:auto;scrollbar-width:none}.strip::-webkit-scrollbar{display:none}.kcard{flex:0 0 46%;padding:4px 8px}.kc{display:none}.kv{font-size:16px}.ks{display:none}.kl{font-size:8.5px;letter-spacing:.8px}.kv small{display:none}.kcard{flex:0 0 38%}.stripToggle{right:4px;top:6px;height:48px;width:28px;box-shadow:-6px 0 8px var(--nav-bg)}.box.open{top:calc(env(safe-area-inset-top,0px) + 56px + var(--strip))}}
 </style>
 </head>
 <body>
@@ -894,6 +918,14 @@ body.chartOpen #hover{bottom:88px}
 </nav>
 
 <div class="searchBox" id="searchBox"><svg viewBox="0 0 20 20" width="16" height="16"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><div class="search" id="search"><svg viewBox="0 0 20 20" width="15" height="15"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="ph" style="display:none"></span><input id="searchIn" type="search" placeholder="Search by location, coordinate or name" autocomplete="off" spellcheck="false"><div class="results" id="searchRes"></div></div></div>
+<div class="strip" id="strip">
+  <div class="kcard" data-k="temp"><div class="kt"><div class="kl" title="Global temperature, land and ocean">Global temperature</div><div class="kv" id="kv-temp"></div><div class="ks" id="ks-temp"></div></div><canvas class="kc" id="kc-temp"></canvas></div>
+  <div class="kcard" data-k="co2"><div class="kt"><div class="kl">CO₂ growth anomaly</div><div class="kv" id="kv-co2"></div><div class="ks" id="ks-co2"></div></div><canvas class="kc" id="kc-co2"></canvas></div>
+  <div class="kcard" data-k="ch4"><div class="kt"><div class="kl">CH₄ growth anomaly</div><div class="kv" id="kv-ch4"></div><div class="ks" id="ks-ch4"></div></div><canvas class="kc" id="kc-ch4"></canvas></div>
+  <div class="kcard" data-k="n2o"><div class="kt"><div class="kl">N₂O growth anomaly</div><div class="kv" id="kv-n2o"></div><div class="ks" id="ks-n2o"></div></div><canvas class="kc" id="kc-n2o"></canvas></div>
+  <button class="stripToggle" id="stripToggle" title="Hide indicator cards">▴</button>
+</div>
+<div class="modal" id="kmodal"><div class="mbox"><button class="kclose" id="kclose" style="float:right">Close</button><h2 id="km-title" style="margin-top:0"></h2><p id="km-lead"></p><div style="position:relative;height:260px"><canvas id="km-chart"></canvas></div><div id="km-body"></div></div></div>
 <div class="showl" id="showl">Show layers</div>
 <div class="lefttools"><button id="lAbout" title="About this dashboard"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button><button id="lStats" title="Summary statistics"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M7 16V9M12 16V4M17 16v-6"/></svg></button><button id="lList" title="Station list"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button><button id="lDl" title="Download data"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M4 19h16"/></svg></button></div>
 <div class="tools"><button id="tPac" title="Pacific-centred view"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></button><button id="tGlobe" title="Atlantic-centred (global) view"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></button><button id="tIn" title="Zoom in"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></button><button id="tOut" title="Zoom out"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/></svg></button><div class="gap"></div><button id="tRegion" title="Region comparison: drag a box on the map"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 2"><rect x="4" y="5" width="16" height="14"/></svg></button><button id="tLayers" title="Layers panel"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/><path d="M3 17.5l9 5 9-5"/></svg></button></div>
@@ -1177,6 +1209,7 @@ body.chartOpen #hover{bottom:88px}
   <tr><td>NOAA baseline observatories (inverted triangles)</td><td>NOAA GML continuous in-situ CO₂ and CH₄ at Utqiaġvik/Barrow (BRW), Mauna Loa (MLO), Mauna Kea (MKO, since the 2022 eruption), American Samoa (SMO) and South Pole (SPO): monthly means from the <code>surface-insitu_1_ccgg_MonthlyData</code> files, quality-flag-passed values only, from 2015. CH₄ is available at BRW, MLO and MKO. Like the flask files these are released annually (currently to December 2025); Mauna Loa CO₂ is extended with GML’s preliminary monthly means.</td><td><span class="cnt" data-cnt="nob">5</span> observatories, 2015 onward.</td></tr>
   <tr><td>PACE chlorophyll and NDVI basemaps</td><td>NASA PACE OCI Level-3 monthly products from OceanColor: <em>CHL chlor_a</em> 4 km (V3.2, NRT files where final ones are not yet released), log₁₀-averaged to 0.25°, anomaly vs the same month of 2024–2025; and <em>LANDVI ndvi</em> 4 km (V3.1), averaged to 0.25°, anomaly vs 2024–2025. PACE launched in February 2024, so the baselines are one or two years rather than five.</td><td>Chl Oct 2025 – Sep 2026; NDVI Oct 2025 – Aug 2026.</td></tr>
   <tr><td>True-colour imagery</td><td>NASA GIBS: <em>BlueMarble_NextGeneration</em> (static, cloud-free 2004 MODIS composite) and <em>OCI_PACE_True_Color</em> for a single recent day, both at 0.125°.</td><td>Static / 18 Oct 2026.</td></tr>
+  <tr><td>Indicator cards (top strip)</td><td>Global temperature: Copernicus C3S ERA5 daily global 2 m temperature (Climate Pulse series), 30-day mean anomaly vs 1991–2020, +0.88 °C to express vs 1850–1900. CO₂, CH₄, N₂O: NOAA GML global marine-surface monthly means; growth = 12-month change of the deseasonalised trend, anomaly = growth minus its 2015–2024 mean; CO₂ also from Mauna Loa weekly (4-week mean of the 12-month change). Sparklines shade months with Niño 3.4 ≥ 0.5 °C. Click a card for the full series, latency and how to improve it.</td><td>Temperature to the day before yesterday; CO₂ global ~3 months behind, Mauna Loa 1 week; CH₄ and N₂O ~4 months.</td></tr>
   <tr><td>Coastlines</td><td><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> 1:110m land polygons (public domain).</td><td>—</td></tr></table>
 
   <h3>How the station values are aggregated</h3>
@@ -1725,6 +1758,51 @@ function readHash(){const h=location.hash.slice(1);if(!h)return;hashBusy=true;co
 const INIT_HASH=location.hash;
 readHash();
 
+
+/* ---------- headline indicator cards ---------- */
+const KC=JSON.parse(document.getElementById('d-cards').textContent);
+const KINFO={
+ temp:{title:'Global temperature (land and ocean)',unit:'°C',
+  lead:()=>`30-day mean global near-surface air temperature anomaly from ERA5 is <b>${fmtS(KC.temp.m30,2)} °C</b> relative to 1991–2020 (≈ ${fmtS(KC.temp.m30+KC.temp.offset_pi,2)} °C above 1850–1900), to ${fmtD(KC.temp.last)}. Global temperature typically peaks 3–4 months after Niño 3.4 does, so most of this El Niño’s warming is still to come.`,
+  how:['Source: Copernicus Climate Change Service ERA5, via the Climate Pulse daily series (2-day latency; the latest days are preliminary).','Pre-industrial offset: +0.88 °C (1850–1900 to 1991–2020, the C3S convention).','To improve: add the NOAA/NASA/Berkeley Earth monthly records as cross-checks, and an ENSO-lag regression to project the peak.']},
+ co2:{title:'CO₂ growth-rate anomaly',unit:'ppm/yr',
+  lead:()=>`Global marine-surface CO₂ grew <b>${KC.co2.growth.toFixed(2)} ppm/yr</b> over the 12 months to ${fmtM(KC.co2.last)}, <b>${fmtS(KC.co2.anom,2)} ppm/yr</b> relative to the 2015–2024 average of ${KC.co2.base.toFixed(2)}. Mauna Loa’s weekly record gives ${KC.co2.mlo.growth4.toFixed(2)} ppm/yr for the four weeks to ${fmtD(KC.co2.mlo.last)}. El Niño raises CO₂ growth mainly through tropical drought and fire, peaking 6–9 months after Niño 3.4 — so the 2026–27 signal is expected to appear from early 2027.`,
+  how:['Sources: NOAA GML global marine-surface monthly mean (deseasonalised trend, ~3–4 month latency) and Mauna Loa weekly in-situ (1-week latency, one site).','Growth = 12-month change of the deseasonalised trend; anomaly = growth minus its 2015–2024 mean.','To improve latency: a satellite global XCO₂ from OCO-2/OCO-3 (already ingested here, ~2-week latency) or GOSAT/GOSAT-2 (NIES monthly global means), and the CAMS near-real-time CO₂ analysis. A multi-station in-situ composite (ICOS, NOAA observatories) would reduce the single-site noise of Mauna Loa.']},
+ ch4:{title:'CH₄ growth-rate anomaly',unit:'ppb/yr',
+  lead:()=>`Global marine-surface CH₄ grew <b>${KC.ch4.growth.toFixed(1)} ppb/yr</b> over the 12 months to ${fmtM(KC.ch4.last)}, <b>${fmtS(KC.ch4.anom,1)} ppb/yr</b> relative to the 2015–2024 average of ${KC.ch4.base.toFixed(1)}. ENSO affects methane through tropical wetland extent (often lower in El Niño droughts), fire emissions, and OH chemistry; the net sign varies between events.`,
+  how:['Source: NOAA GML global marine-surface monthly mean (~4 month latency).','To improve latency: TROPOMI (Sentinel-5P) daily global XCH₄ — the biggest single gain, days instead of months; GOSAT/GOSAT-2 XCH₄ monthly means; CAMS near-real-time CH₄. TROPOMI would also allow maps of the wetland and fire methane anomaly over Amazonia, Africa and Southeast Asia.']},
+ n2o:{title:'N₂O growth-rate anomaly',unit:'ppb/yr',
+  lead:()=>`Global marine-surface N₂O grew <b>${KC.n2o.growth.toFixed(2)} ppb/yr</b> over the 12 months to ${fmtM(KC.n2o.last)}, <b>${fmtS(KC.n2o.anom,2)} ppb/yr</b> relative to the 2015–2024 average of ${KC.n2o.base.toFixed(2)}. ENSO modulates N₂O through ocean upwelling (El Niño suppresses equatorial Pacific outgassing) and tropical soil moisture.`,
+  how:['Source: NOAA GML global marine-surface monthly mean (~4 month latency).','N₂O is the weakest link: satellite N₂O (IASI, CrIS research retrievals) is not yet operational, so latency is set by the surface networks.','To improve: add AGAGE in-situ N₂O (higher-frequency, ~2–3 month latency) and the ICOS N₂O records already on the Carbon Portal; flask and in-situ composites would sharpen the monthly signal.']}};
+function fmtS(v,d){return (v>=0?'+':'−')+Math.abs(v).toFixed(d);}
+function fmtM(k){const [y,m]=k.split('-');return MON[+m-1]+' '+y;}
+const ninoMonthly=k=>NINO_M0[k];
+function kSeries(k){if(k==='temp'){const s=new Date(KC.temp.start+'T00:00:00Z');const out=[];let acc=[];KC.temp.v.forEach((v,i)=>{acc.push(v/1000);if(acc.length>30)acc.shift();if(i%7===0&&acc.length===30){const d=new Date(s.getTime()+i*864e5);out.push([d.toISOString().slice(0,10),acc.reduce((a,b)=>a+b,0)/30]);}});return out;}
+  return KC[k].g.map(([d,v])=>[d,v-KC[k].base]);}
+function kSpark(cv,ser,dark){const W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;const r=devicePixelRatio||1;cv.width=W*r;cv.height=H*r;const g=cv.getContext('2d');g.scale(r,r);
+  const vs=ser.map(p=>p[1]);let lo=Math.min(...vs,0),hi=Math.max(...vs,0);const pad=(hi-lo)*.1||.1;lo-=pad;hi+=pad;const x=i=>i/(ser.length-1)*W,y=v=>H-(v-lo)/(hi-lo)*H;
+  ser.forEach((p,i)=>{const n=ninoMonthly(p[0].slice(0,7));if(n!=null&&n>=0.5){g.fillStyle=`rgba(232,147,11,${Math.min(.32,.08+n*.07)})`;g.fillRect(x(i)-W/ser.length/2,0,W/ser.length+1,H);}});
+  g.strokeStyle=dark?'#55618a':'#b8bfcc';g.lineWidth=1;g.beginPath();g.moveTo(0,y(0));g.lineTo(W,y(0));g.stroke();
+  g.strokeStyle=dark?'#8ec5ff':'#1f5fa8';g.lineWidth=1.5;g.beginPath();ser.forEach((p,i)=>{i?g.lineTo(x(i),y(p[1])):g.moveTo(x(i),y(p[1]));});g.stroke();}
+function renderCards(){const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  const set=(k,v,cls,sub)=>{const e=document.getElementById('kv-'+k);e.innerHTML=v;e.className='kv '+cls;document.getElementById('ks-'+k).textContent=sub;kSpark(document.getElementById('kc-'+k),kSeries(k),dark);};
+  set('temp',`${fmtS(KC.temp.m30,2)} °C<small>30-day · vs 1991–2020</small>`,KC.temp.m30>=0?'up':'dn',`${fmtS(KC.temp.m30+KC.temp.offset_pi,2)} °C vs 1850–1900 · ${fmtD(KC.temp.last)}`);
+  for(const k of ['co2','ch4','n2o']){const c=KC[k];set(k,`${fmtS(c.anom,c.dp)}<small>${c.unit}/yr vs 2015–24</small>`,c.anom>=0?'up':'dn',`growth ${c.growth.toFixed(c.dp)} ${c.unit}/yr · ${fmtM(c.last)}`);}}
+let kChart=null;
+function openCard(k){const I=KINFO[k];document.getElementById('km-title').textContent=I.title;document.getElementById('km-lead').innerHTML=I.lead();
+  document.getElementById('km-body').innerHTML='<h4>Data, latency and how to improve it</h4><ul>'+I.how.map(s=>`<li>${s}</li>`).join('')+'</ul>';
+  document.getElementById('kmodal').classList.add('open');const ser=kSeries(k);
+  const nino=ser.map(p=>{const n=ninoMonthly(p[0].slice(0,7));return n==null?null:+n.toFixed(2);});
+  if(kChart)kChart.destroy();
+  kChart=new Chart(document.getElementById('km-chart'),{type:'line',data:{labels:ser.map(p=>p[0]),datasets:[{label:k==='temp'?'30-day mean anomaly (°C, vs 1991–2020)':`growth anomaly (${I.unit}, vs 2015–2024 mean)`,data:ser.map(p=>+p[1].toFixed(3)),borderColor:'#1f5fa8',borderWidth:1.6,pointRadius:0,tension:.2,yAxisID:'y'},{label:'Niño 3.4 (°C, right axis)',data:nino,borderColor:'#e8930b',backgroundColor:'rgba(232,147,11,.15)',fill:'origin',borderWidth:1.2,pointRadius:0,spanGaps:true,yAxisID:'y2'}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{boxWidth:12,font:{size:11}}}},scales:{x:{ticks:{maxTicksLimit:9,font:{size:10}}},y:{title:{display:true,text:I.unit}},y2:{position:'right',grid:{drawOnChartArea:false},min:-3,max:4,title:{display:true,text:'Niño 3.4 °C'}}}}});}
+document.querySelectorAll('.kcard').forEach(c=>c.addEventListener('click',()=>openCard(c.dataset.k)));
+document.getElementById('kclose').addEventListener('click',()=>document.getElementById('kmodal').classList.remove('open'));
+document.getElementById('kmodal').addEventListener('click',e=>{if(e.target.id==='kmodal')e.target.classList.remove('open');});
+document.getElementById('stripToggle').addEventListener('click',e=>{e.stopPropagation();const off=document.body.classList.toggle('stripOff');e.target.textContent=off?'▾':'▴';e.target.title=off?'Show indicator cards':'Hide indicator cards';try{localStorage.setItem('stripOff',off?'1':'');}catch(_){}setTimeout(()=>map.invalidateSize(),50);});
+try{if(localStorage.getItem('stripOff')){document.body.classList.add('stripOff');const b=document.getElementById('stripToggle');b.textContent='▾';b.title='Show indicator cards';}}catch(_){}
+renderCards();addEventListener('resize',()=>renderCards());
+
 /* ---------- story presets ---------- */
 const STORIES={
   nino:{base:'sst',nets:['NOAA','NOAAobs','PMEL'],flux:[],fire:false,mode:'detr',gas:'co2',tab:'bases',frame:[[-42,110],[42,300]]},
@@ -1752,7 +1830,7 @@ if(!INIT_HASH.slice(1)) applyStory('nino');
 else{const m=INIT_HASH.match(/(?:^#|&)st=(\w+)/);if(m&&STORIES[m[1]]){curStory=m[1];document.querySelectorAll('#story button').forEach(b=>b.classList.toggle('on',b.dataset.s===curStory));updateHash();}}
 
 /* ---------- keyboard ---------- */
-document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;const s=SL[baseMode];
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('kmodal').classList.remove('open');if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;const s=SL[baseMode];
   if((e.key==='ArrowLeft'||e.key==='ArrowRight')&&s){const el=document.getElementById(s.el);el.value=Math.min(+el.max,Math.max(0,+el.value+(e.key==='ArrowRight'?1:-1)));showBase(baseMode);e.preventDefault();}
   else if(e.key==='+'||e.key==='=')map.zoomIn();else if(e.key==='-'||e.key==='_')map.zoomOut();else if(e.key==='r'||e.key==='R')setRegion(!regionOn);
   else if(e.key==='Escape'){setRegion(false);document.getElementById('chart').classList.remove('open');document.body.classList.remove('chartOpen');map.invalidateSize();}});
