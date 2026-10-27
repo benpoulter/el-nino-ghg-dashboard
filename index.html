@@ -1352,7 +1352,7 @@ document.getElementById('lStats').addEventListener('click',toggleStats);
 document.getElementById('statsClose').addEventListener('click',()=>{statsP.classList.remove('open');if(innerWidth>800&&boxWasOpen)boxEl.classList.remove('hidden');});
 
 /* ---------- map ---------- */
-const map=L.map('map',{crs:L.CRS.EPSG4326,worldCopyJump:false,minZoom:0,maxZoom:6,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:90,zoomControl:true,attributionControl:true,maxBounds:[[-90,-180],[90,540]],maxBoundsViscosity:1.0});
+const map=L.map('map',{crs:L.CRS.EPSG4326,worldCopyJump:false,minZoom:0,maxZoom:5.5,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:90,zoomControl:true,attributionControl:true,maxBounds:[[-90,-180],[90,540]],maxBoundsViscosity:1.0});
 const WRAP=360;const shiftGeo=g=>JSON.parse(JSON.stringify(g),(k,v)=>Array.isArray(v)&&v.length===2&&typeof v[0]==='number'&&typeof v[1]==='number'&&Math.abs(v[0])<=180?[v[0]+WRAP,v[1]]:v);
 function normLng(l){return l>180?l-360:l;}
 map.attributionControl.setPrefix('');
@@ -1434,6 +1434,7 @@ const cmpL2=document.createElement('div');cmpL2.className='cmpLbl';cmpL2.style.d
 let cmpFrac=0.5;
 function applyClip(){if(!cmpLayer)return;const el=cmpLayer.getElement();if(!el)return;const mapEl=document.getElementById('map'),W=mapEl.clientWidth,x=W*cmpFrac;const r=el.getBoundingClientRect(),mr=mapEl.getBoundingClientRect();const leftPx=Math.max(0,x-(r.left-mr.left));el.style.clipPath=`inset(0 0 0 ${leftPx}px)`;cmpDiv.style.left=x+'px';cmpDiv.style.display='';cmpL1.style.display='';cmpL2.style.display='';cmpL1.style.right=(W-x+8)+'px';cmpL1.style.left='';cmpL2.style.left=(x+8)+'px';}
 map.on('move zoom viewreset resize',()=>{if(cmpLayer)applyClip();});
+map.on('moveend zoomend',()=>syncTwin());
 (function(){let drag=false;const mapEl=document.getElementById('map');mapEl.addEventListener('pointerdown',e=>{if(!cmpLayer)return;const x=e.clientX-mapEl.getBoundingClientRect().left;if(Math.abs(x-mapEl.clientWidth*cmpFrac)<14){drag=true;map.dragging.disable();e.preventDefault();}});window.addEventListener('pointermove',e=>{if(!drag)return;const mr=mapEl.getBoundingClientRect();cmpFrac=Math.max(0.02,Math.min(0.98,(e.clientX-mr.left)/mapEl.clientWidth));applyClip();});window.addEventListener('pointerup',()=>{if(drag){drag=false;map.dragging.enable();}});})();
 function showCmp(){if(cmpLayer){map.removeLayer(cmpLayer);cmpLayer=null;}cmpDiv.style.display='none';cmpL1.style.display='none';cmpL2.style.display='none';
   const on=document.getElementById('ckCmp').checked&&SL[baseMode];document.getElementById('cmpOpt').classList.toggle('open',!!on);if(!on)return;
@@ -1443,6 +1444,11 @@ document.getElementById('ckCmp').addEventListener('change',showCmp);document.get
 const SRC={'OCO2_L2_Fwd_FP.11.3':'OCO2_L2_Fwd_FP v11.3','OCO2_L2_Fwd_FP.11.2':'OCO2_L2_Fwd_FP v11.2','OCO2_L2_Lite_FP.11.3r':'OCO2_L2_Lite_FP v11.3r'};
 let updateHash=()=>{};
 let baseLayerW=null;
+// The copy of the basemap east of the dateline is only kept while that part of the map is in view:
+// at high zoom each image layer is tens of thousands of pixels wide, so an unseen copy doubles memory for nothing.
+function syncTwin(){const need=!!baseLayer&&map.getBounds().getEast()>180;
+  if(need&&!baseLayerW){baseLayerW=wrapTwin(baseLayer);if(baseLayerW)baseLayerW.addTo(map);}
+  else if(!need&&baseLayerW){map.removeLayer(baseLayerW);baseLayerW=null;}}
 function wrapTwin(l){if(!l||!l.getBounds)return null;const b=l.getBounds();const nb=[[b.getSouth(),b.getWest()+WRAP],[b.getNorth(),b.getEast()+WRAP]];return L.imageOverlay(l._url,nb,{pane:'basemap',opacity:l.options.opacity,interactive:false,className:l.options.className||''});}
 function showBase(from){
   if(from)syncDates(from);
@@ -1505,7 +1511,7 @@ function showBase(from){
     document.getElementById('fmLab').innerHTML=abs?'<span>1</span><span>~30</span><span>≥ 1000 per cell</span>':'<span>−300</span><span>0</span><span>+300 per cell</span>';
     document.getElementById('fmNote').textContent=`VIIRS (Suomi-NPP) active-fire detections per 2° cell, summed over every third day of the month and scaled ×3 to an approximate monthly count${abs?'':'; anomaly = this month minus the 2021–2025 same-month mean'}. Source: NASA GIBS VIIRS 375 m thermal-anomaly layer (rendered pixels counted, so dense fire clusters are undercounted). Global total ≈ ${c.total.toLocaleString()}${abs?'':`; mean anomaly ${c.manom>=0?'+':''}${c.manom.toFixed(1)} per cell`}.`;
   }
-  if(baseLayer){baseLayerW=wrapTwin(baseLayer);if(baseLayerW)baseLayerW.addTo(map);}
+  syncTwin();
   if(document.getElementById('ckCmp').checked)showCmp();
   updateHash();
 }
