@@ -445,6 +445,16 @@ def step_registries():
     for x in ccu:
         if cnt2[x['id']]>1: n2[x['id']]=n2.get(x['id'],0)+1; x['id']=f"{x['id']}-{x['kind'][0]}{n2[x['id']]}"
     json.dump(dict(TCCON=tc,COCCON=ccu),open(f'{D}/col.json','w')); print('TCCON',len(tc),'COCCON',len(ccu))
+    # --- WAFNET (West African Flux Network): the JSON behind its Sites page
+    w=http_get('https://wafnet-351317.gitlab.io/data/sites.json').json(); CC={'Bénin':'Benin','Burkina-Faso':'Burkina Faso','Sénégal':'Senegal'}; wa=[]
+    for country,L in w.items():
+        for x in L:
+            det=re.sub(r'\s+',' ',x.get('details') or '').strip(); yr=re.search(r'(?:settled|established|set up|installed|since|started)\D{0,20}((?:19|20)\d\d)',det)
+            la,lo=x['coordinates']['latitude'],x['coordinates']['longitude']
+            near=[f['id'] for n in flux for f in flux[n] if abs(f['lat']-la)<0.03 and abs(f['lon']-lo)<0.03]
+            wa.append(dict(id=re.sub(r'[^A-Za-z0-9]','',x['name'])[:16],name=x['name'],country=CC.get(country,country),lat=round(la,5),lon=round(lo,5),desc=x.get('description') or '',
+                details=det[:420]+('…' if len(det)>420 else ''),contacts=[c['name'] for c in x.get('contact',[]) if c.get('name')],active=x.get('is_active'),began=yr.group(1) if yr else '',fluxnet=near[0] if near else ''))
+    json.dump(wa,open(f'{D}/wafnet.json','w'),ensure_ascii=False); print('WAFNET',len(wa))
 def step_socat():
     """SOCAT monthly 1-degree gridded fCO2 (annual release) -> 4-degree cells with monthly series since 2010."""
     import netCDF4 as nc, zipfile, glob
@@ -588,6 +598,9 @@ def replace_data_blocks(page):
     if os.path.exists(f'{D}/col.json'):
         cj=json.load(open(f'{D}/col.json'))
         if len(cj.get('TCCON',[]))>20 and len(cj.get('COCCON',[]))>20: t=re.sub(r'<script id="d-col" type="application/json">.*?</script>',lambda m:'<script id="d-col" type="application/json">'+json.dumps(cj,separators=(',',':'))+'</script>',t,flags=re.S)
+    if os.path.exists(f'{D}/wafnet.json'):
+        wj=json.load(open(f'{D}/wafnet.json'))
+        if len(wj)>=10: t=re.sub(r'<script id="d-wafnet" type="application/json">.*?</script>',lambda m:'<script id="d-wafnet" type="application/json">'+json.dumps(wj,ensure_ascii=False,separators=(',',':'))+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/cards.json'):
         t=re.sub(r'<script id="d-cards" type="application/json">.*?</script>',lambda m:'<script id="d-cards" type="application/json">'+open(f'{D}/cards.json').read()+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/outlook.json'):
