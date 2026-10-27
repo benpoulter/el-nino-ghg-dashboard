@@ -615,6 +615,9 @@ def step_split():
     if PAGE!='../dashboard-single.html':
         import shutil; shutil.copy('../index.html','../dashboard-single.html')
     sh(f'{sys.executable} split_page.py ../dashboard-single.html ..')
-    sh(f'{sys.executable} test_page.py http://localhost:8765/index.html') if os.environ.get('TEST_SPLIT') else None
+    import subprocess as _sp, time as _t
+    srv=_sp.Popen([sys.executable,'-m','http.server','8765'],cwd='..',stdout=_sp.DEVNULL,stderr=_sp.DEVNULL); _t.sleep(2)
+    try: sh(f'{sys.executable} test_page.py http://localhost:8765/index.html')   # the page as GitHub Pages serves it
+    finally: srv.terminate()
 if __name__=='__main__':
     globals()['step_'+sys.argv[1]]()

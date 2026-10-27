@@ -1369,8 +1369,8 @@ body.stripOff .stripToggle{position:fixed;top:calc(env(safe-area-inset-top,0px) 
 (async function(){
 async function J(id){const el=document.getElementById(id);if(!el){const r=await fetch('data/'+id+'.json');if(!r.ok)throw new Error('missing data/'+id+'.json');return r.json();}if(el.dataset.gz!=='1')return JSON.parse(el.textContent);if(!('DecompressionStream' in window)){document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;inset:0;z-index:9999;background:#fff;padding:40px;font-family:sans-serif">This dashboard needs a browser from 2023 or later (Chrome 80+, Safari 16.4+, Firefox 113+).</div>');throw new Error('no DecompressionStream');}const bin=Uint8Array.from(atob(el.textContent),c=>c.charCodeAt(0));const ds=new DecompressionStream('gzip');const w=ds.writable.getWriter();w.write(bin);w.close();const buf=await new Response(ds.readable).arrayBuffer();return JSON.parse(new TextDecoder().decode(buf));}
 const prog=(n,t)=>{const el=document.getElementById('splashBar');if(el)el.style.width=Math.round(100*n/t)+'%';};
-const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2','d-sst','d-outlook','d-flux','d-col','d-chl','d-bgc','d-other','d-glwd','d-pchl','d-pndvi','d-paf','d-saeon','d-lsce'];let done=0;
-const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,SST,OUTLOOK,FLUX,COL,CHL,BGC,OTHER,GLWD,PCHL,PNDVI,PAF,SAEON,LSCE]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
+const IDS=['d-st','d-land','d-oco2','d-ndvi','d-s3','d-pm','d-fires','d-labels','d-borders','d-cities','d-enso','d-co','d-firem','d-ndvi2','d-sst','d-outlook','d-flux','d-col','d-chl','d-bgc','d-other','d-glwd','d-pchl','d-pndvi','d-paf','d-saeon','d-lsce','d-cards'];let done=0;
+const [ST,LAND,OCO,NDVI,S3N,PM,FIRES,LABELS,BORDERS,CITIES,ENSO,CO,FIREM,NDVI2,SST,OUTLOOK,FLUX,COL,CHL,BGC,OTHER,GLWD,PCHL,PNDVI,PAF,SAEON,LSCE,KC]=await Promise.all(IDS.map(id=>J(id).then(v=>{prog(++done,IDS.length);return v;})));
 NDVI.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('ndvi-img-'+i);return el?el.textContent:'data/ndvi-img-'+i+'.webp';}}));
 S3N.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('s3-img-'+i);return el?el.textContent:'data/s3-img-'+i+'.png';}}));
 SST.months.forEach((c,i)=>Object.defineProperty(c,'src',{get(){const el=document.getElementById('sst-img-'+i);return el?el.textContent:'data/sst-img-'+i+'.webp';}}));
@@ -1864,7 +1864,6 @@ readHash();
 
 
 /* ---------- headline indicator cards ---------- */
-const KC=JSON.parse(document.getElementById('d-cards').textContent);
 const KINFO={
  temp:{title:'Global temperature (land and ocean)',unit:'°C',
   lead:()=>`30-day mean global near-surface air temperature anomaly from ERA5 is <b>${fmtS(KC.temp.m30,2)} °C</b> relative to 1991–2020 (≈ ${fmtS(KC.temp.m30+KC.temp.offset_pi,2)} °C above 1850–1900), to ${fmtD(KC.temp.last)}. Global temperature typically peaks 3–4 months after Niño 3.4 does, so most of this El Niño’s warming is still to come.`,
