@@ -455,6 +455,23 @@ def step_registries():
             wa.append(dict(id=re.sub(r'[^A-Za-z0-9]','',x['name'])[:16],name=x['name'],country=CC.get(country,country),lat=round(la,5),lon=round(lo,5),desc=x.get('description') or '',
                 details=det[:420]+('…' if len(det)>420 else ''),contacts=[c['name'] for c in x.get('contact',[]) if c.get('name')],active=x.get('is_active'),began=yr.group(1) if yr else '',fluxnet=near[0] if near else ''))
     json.dump(wa,open(f'{D}/wafnet.json','w'),ensure_ascii=False); print('WAFNET',len(wa))
+    # --- MexFlux: site table on /sites/ + coordinates from the embedded plotly site map
+    pg_=http_get('https://mexflux.gitlab.io/sites/').text; mp=http_get('https://mexflux.gitlab.io/mexflux_site_map_2024.html').text
+    tb=re.findall(r'<table.*?</table>',pg_,re.S)[0]
+    rows=[[html.unescape(re.sub('<[^>]+>','',c)).strip() for c in re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>',r,re.S)] for r in re.findall(r'<tr.*?</tr>',tb,re.S)]
+    hdr=rows[0]; tab=[dict(zip(hdr,r)) for r in rows[1:] if len(r)>=6]; co={}
+    for m in re.finditer(r'\{"lat":\[([^\]]*)\],"lon":\[([^\]]*)\],"marker".*?"text":\[(.*?)\](?:,|\})',mp,re.S):
+        for la,lo,tx in zip(json.loads('['+m.group(1)+']'),json.loads('['+m.group(2)+']'),json.loads('['+m.group(3)+']')):
+            sid=re.search(r'Site ID:\s*(\S+)',html.unescape(tx))
+            if sid: co[sid.group(1).upper()]=(la,lo)
+    fids={f['id'].upper() for n in flux for f in flux[n]}; mx=[]
+    for x in tab:
+        raw=x['Site ID']; key=raw.upper()
+        if key not in co: continue
+        sid='MX-'+raw.split('-',1)[1] if '-' in raw else raw
+        yrs=x['years']; rng=re.findall(r'(\d{4})',yrs); op=bool(re.search(r'\d{4}\s*-\s*\)',yrs)); data=x.get('Data at','')
+        mx.append(dict(id=sid,name=x['Site name'],country='Mexico',lat=round(co[key][0],5),lon=round(co[key][1],5),pi=x['PI'],veg=x['Veg type'],years=yrs,began=rng[0] if rng else '',end='' if op else (rng[-1] if rng else ''),active=op,data=data,fluxnet=sid if sid.upper() in fids else '',url=f'https://ameriflux.lbl.gov/sites/siteinfo/{sid}' if 'ameri' in data.lower() else ''))
+    json.dump(mx,open(f'{D}/mexflux.json','w'),ensure_ascii=False); print('MexFlux',len(mx))
 def step_socat():
     """SOCAT monthly 1-degree gridded fCO2 (annual release) -> 4-degree cells with monthly series since 2010."""
     import netCDF4 as nc, zipfile, glob
@@ -601,6 +618,9 @@ def replace_data_blocks(page):
     if os.path.exists(f'{D}/wafnet.json'):
         wj=json.load(open(f'{D}/wafnet.json'))
         if len(wj)>=10: t=re.sub(r'<script id="d-wafnet" type="application/json">.*?</script>',lambda m:'<script id="d-wafnet" type="application/json">'+json.dumps(wj,ensure_ascii=False,separators=(',',':'))+'</script>',t,flags=re.S)
+    if os.path.exists(f'{D}/mexflux.json'):
+        mj=json.load(open(f'{D}/mexflux.json'))
+        if len(mj)>=20: t=re.sub(r'<script id="d-mexflux" type="application/json">.*?</script>',lambda m:'<script id="d-mexflux" type="application/json">'+json.dumps(mj,ensure_ascii=False,separators=(',',':'))+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/cards.json'):
         t=re.sub(r'<script id="d-cards" type="application/json">.*?</script>',lambda m:'<script id="d-cards" type="application/json">'+open(f'{D}/cards.json').read()+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/outlook.json'):
