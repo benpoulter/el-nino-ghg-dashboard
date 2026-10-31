@@ -794,7 +794,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 #splash.off{opacity:0;pointer-events:none}
 #splash .sp{width:28px;height:28px;border:3px solid var(--panel-border);border-top-color:var(--blue);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.foot a{color:var(--text-body);text-decoration:none}
+.foot a{color:var(--text-body);text-decoration:none;white-space:nowrap}
+.foot{white-space:nowrap;max-width:calc(100% - 420px)}
+@media (max-width:1250px){.foot a:first-child{display:none}}
 .box h2{font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--text-light);margin:12px 16px 4px}
 .story{display:flex;align-items:center;gap:4px;padding:8px 12px 6px;background:var(--panel);border-bottom:1px solid var(--panel-border)}
 .story span{font-size:10.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-light);margin-right:4px}
@@ -936,7 +938,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
 <div class="slist" id="slist"><div class="ttl">Stations<button id="slistClose">×</button></div><div class="ctl"><select id="slNet"><option value="ghg">ICOS + NOAA (greenhouse gases)</option><option value="ICOS">ICOS</option><option value="NOAA">NOAA flasks</option><option value="NOAAobs">NOAA observatories</option><option value="OpenAQ">OpenAQ (PM₂.₅)</option><option value="SOCAT">SOCAT (fCO₂)</option><option value="PMEL">PMEL moorings (pCO₂)</option><option value="all">All networks</option></select><select id="slSort"><option value="desc">Highest first</option><option value="asc">Lowest first</option><option value="name">By name</option></select><input id="slQ" type="search" placeholder="filter…" style="flex:1;min-width:80px"></div><div class="rows" id="slRows"></div></div>
 <button class="statsBtn" id="statsBtn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16M7 16V9M12 16V4M17 16v-6"/></svg>Summary Statistics</button>
 <div class="stats-p" id="statsP"><div class="ttl">Summary Statistics<button id="statsClose">×</button></div><table id="statsT"></table></div>
-<div class="foot"><a href="https://sparkclimate.org" target="_blank" rel="noopener">Spark Climate Solutions</a><a href="#" id="footAbout">Data providers &amp; methods</a><a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">Contact: ben@sparkclimate.org</a></div>
+<div class="foot"><a href="https://sparkclimate.org" target="_blank" rel="noopener">Spark Climate Solutions</a><a href="#" id="footAbout">Data providers &amp; methods</a><a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">Contact: ben@sparkclimate.org</a><a href="https://github.com/benpoulter/el-nino-ghg-dashboard" target="_blank" rel="noopener" title="Source code and data pipeline on GitHub">Created with Claude Fable 5 · Code on GitHub</a></div>
 <aside class="box hidden" id="box">
   <div class="ttl" id="boxTtl"><span><i class="grip"></i>Layers</span><button id="boxClose" title="Close">×</button></div>
   <div class="mbtns"><button id="mAbout">About</button><button id="mStats">Statistics</button><button id="mList">Station list</button><button id="mDl">Download CSV</button><button id="mContact">Contact</button></div>
@@ -1170,7 +1172,7 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
   </div>
   <p class="note" style="margin:10px 16px 4px">The Story buttons at the top of this panel set up four ready-made views — the El Niño itself, the land response, atmospheric CO₂, and methane and wetlands — including basemap, layers, colouring, latest dates and map frame; the page opens on “El Niño”. Change anything afterwards as usual.</p>
   <p class="note" style="margin:10px 16px 4px">The map continues east of the dateline so the Pacific can be viewed whole: use the ⊕ button on the tool strip for a Pacific-centred view, and the globe button to return to the Atlantic-centred view.</p>
-  <p class="note" style="margin:10px 16px 4px"><b style="color:var(--text)">Contact:</b> <a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">ben@sparkclimate.org</a> · <a href="https://sparkclimate.org" target="_blank" rel="noopener">Spark Climate Solutions</a></p>
+  <p class="note" style="margin:10px 16px 4px"><b style="color:var(--text)">Contact:</b> <a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">ben@sparkclimate.org</a> · <a href="https://sparkclimate.org" target="_blank" rel="noopener">Spark Climate Solutions</a><br>Created with Claude Fable 5 (Anthropic) · <a href="https://github.com/benpoulter/el-nino-ghg-dashboard" target="_blank" rel="noopener">source code on GitHub</a></p>
   <p class="note" style="margin:10px 16px 4px"><span class="deskOnly">Drag this panel by its title bar; double-click the title to snap it back. Keys: <span class="kbd">←</span><span class="kbd">→</span> step the active basemap date, <span class="kbd">+</span><span class="kbd">−</span> zoom, <span class="kbd">R</span> region tool, <span class="kbd">Esc</span> close. </span>The URL updates as you move, so you can copy it to share a view. Click a station for its time series. Data are an embedded snapshot; see each layer’s note and the About panel for dates and caveats.</p>
 </aside>
 
@@ -1264,6 +1266,8 @@ body.chartOpen .box{max-height:calc(100% - env(safe-area-inset-top,0px) - env(sa
    <li>Nothing on this page is computed live. Dates shown next to each layer are the dates of the underlying data, not of your visit.</li>
   </ul>
 
+  <h3>How this dashboard was made</h3>
+  <p>This dashboard, its data pipeline and its weekly automated refresh were created using <b>Claude Fable 5</b>, Anthropic’s AI model, working with Ben Poulter. All code — the page, the build scripts and the GitHub Actions workflow — is open at <a href="https://github.com/benpoulter/el-nino-ghg-dashboard" target="_blank" rel="noopener">github.com/benpoulter/el-nino-ghg-dashboard</a>.</p>
   <h3>Contact</h3>
   <p>Questions, corrections or requests for additional data layers: <a href="mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard">ben@sparkclimate.org</a> (Ben Poulter, Spark Climate Solutions).</p>
   <h3>Citation</h3>
