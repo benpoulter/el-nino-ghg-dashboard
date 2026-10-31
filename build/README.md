@@ -1,72 +1,45 @@
-# El Niño GHG Dashboard — data build scripts
+# Build pipeline — El Niño GHG Dashboard
 
-These are the scripts used to build the embedded data snapshot for `index.html`.
-They are provided as a starting point for refreshing the dashboard yourself; they
-were written interactively, so expect to adapt paths and a few inline steps.
+The dashboard is one self-contained page, `dashboard-single.html`. A weekly GitHub Actions workflow
+(`.github/workflows/refresh.yml`, copy of `refresh.yml.example`) re-downloads the data, rebuilds the data
+blocks inside that page, tests it, and writes the GitHub Pages copy (`index.html` + `data/`).
 
-## Credentials (never commit these; use environment variables / GitHub secrets)
-| Source | Credential | Used by |
-|---|---|---|
-| NASA Earthdata (GES DISC OCO-2 Fwd_FP / Lite) | `EARTHDATA_TOKEN` (Bearer) | OCO-2 step |
-| Copernicus Data Space (Sentinel-3 NDVI 300 m) | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` for `eodata.dataspace.copernicus.eu` | `s3ndvi` step |
-| OpenAQ v3 | `OPENAQ_API_KEY` | `openaq_fetch.py` |
-| ICOS, NOAA GML, NASA GIBS, FIRMS CSV, GEOS-CF OPeNDAP, CPC | none | — |
+## Credentials (GitHub repository secrets; never commit them)
+| Secret | Used for |
+|---|---|
+| `EARTHDATA_TOKEN` | NASA GES DISC (OCO-2), OceanColor (VIIRS/PACE) — expires; regenerate at urs.earthdata.nasa.gov |
+| `OPENAQ_API_KEY` | OpenAQ v3 (PM₂.₅ monitors) |
+| `CDSE_S3_KEY`, `CDSE_S3_SECRET` | Copernicus Data Space S3 (Sentinel-3 NDVI) |
 
-## Pipeline (in order)
-1. **NOAA GGRN** – download `co2_*` and `ch4_*_surface-flask_1_ccgg_month.txt` from
-   `https://gml.noaa.gov/aftp/data/trace_gases/{co2,ch4}/flask/surface/txt/` into `noaa/` and `noaa_ch4/`;
-   station table from `https://gml.noaa.gov/dv/site/?program=ccgg` saved as `noaa/sites.html`.
-2. **ICOS** – SPARQL (`q1.rq`, `q2.rq`, `q3.rq`) for stations and CO2/CH4 L2 + NRT objects; hourly data via the
-   portal's `/cpb` binary endpoint (anonymous works when `Referer`/`Origin` are set to the portal) – see `icos_ch4.py`
-   (CO2 is identical with `co2` column). Output `icos.json`, `icos_ch4.json`.
-3. **OpenAQ** – `openaq_fetch.py` (1 request/s; ~30 min for 1,800 sites) then `build_aq.py`.
-4. **Stations bundle** – `build_stations.py` → `stations.json` (per-site `vars{co2,ch4,pm25}` with anomaly metrics).
-5. **OCO-2** – list daily `OCO2_L2_Fwd_FP.11.3` (and `.11.2`, `OCO2_L2_Lite_FP.11.3r`) files on GES DISC,
-   download with the Earthdata token, keep `xco2_quality_flag==0`, bin 16-day windows to 1° → `oco2_fwd.json`.
-6. **MODIS NDVI** – `ndvi_hi.py` (GIBS WMS `MODIS_Terra_L3_NDVI_Monthly`, colour-map inversion, 5-yr same-month anomaly;
-   latest month at 7200×3600, others 2880×1440) → `ndvi_hi/anom_*.png`, plus 2° value grids (`ndvi2.json`).
-7. **Sentinel-3 NDVI** – CDSE S3 COGs `CLMS/bio-geophysical/vegetation_indices/ndvi_global_300m_10daily_v3/…`,
-   read the 1/32 overview with rasterio (`/vsis3/`), DN×0.004−0.08, same-dekad 5-yr anomaly → `s3ndvi/anom_*.png`.
-8. **GEOS-CF PM2.5** – `geoscf_fetch2.py` (OPeNDAP, 6-hourly samples at 2°; v2 analysis current, v1 for the baseline).
-9. **AIRS CO + monthly fires** – `bg_fetch.py` (GIBS WMS; AIRS 500 hPa CO monthly, VIIRS thermal anomalies counted per cell).
-10. **ENSO / global CO2** – CPC `wksst9120.for`, `oni.ascii.txt`; NOAA `co2_mm_gl.csv`, `co2_gr_gl.csv` → `enso.json`.
-11. **VIIRS 24 h fires** – FIRMS global CSVs (SUOMI + NOAA-20), packed to int16 → `fires.json`.
-12. **Assemble** – `build_all.py assemble` builds the grid JSONs, then replaces the data and image blocks inside `index.html` in place (the older `reference/assemble.py` + `template.html` route is kept for history); big JSON blocks are gzipped+base64 and decoded in
-    the browser (`DecompressionStream`). The published page differs from `template.html` by later interactive edits;
-    treat `index.html` in the repo as the authoritative page and `page_patch_example.py` as an example of how it was patched.
+## Weekly steps (`run_all.sh`, in order)
+`noaa` NOAA GML flask, observatory in-situ and Mauna Loa preliminary CO₂/CH₄ ·
+`icos` ICOS Carbon Portal CO₂/CH₄ (+ platform and flask tags) · `openaq` PM₂.₅ monitors (incremental, weekly per site) ·
+`stations` merges all station networks (carries SOCAT and PMEL forward) · `oco2` OCO-2 16-day 0.25° windows ·
+`modis` MODIS NDVI anomaly images · `s3ndvi` Sentinel-3 NDVI dekads · `geoscf` GEOS-CF PM₂.₅ ·
+`gibs` AIRS CO and monthly fire counts · `sst` GHRSST MUR SST anomaly · `enso` Niño indices, global CO₂/CH₄, CPC outlook ·
+`cards` the four headline indicator cards · `fires` VIIRS 24-hour fires · `assemble` · `test` · `split`
 
-## Automating with GitHub Actions
-A workflow could run steps 1–12 weekly on `ubuntu-latest` (≈60–90 min, dominated by OpenAQ and OCO-2 downloads),
-with the four secrets above, and commit the regenerated `index.html`. A skeleton is in `.github/workflows/refresh.yml`.
+Data steps are non-fatal: a provider outage is retried with backoff, then skipped (warning on the run, listed in
+`failed_steps.txt`) and that layer keeps its previous data. The assembler never replaces a layer with data that end
+earlier than what the page already shows. Only `assemble`, `test` and `split` stop a run; `test` runs on both the
+single file and the GitHub Pages layout.
 
-## Caching and dry runs
-`refresh.yml` caches `build/data`, `build/geoscf`, `build/airs`, `build/firesm` and `build/ndvi_hi` between runs
-(key = year-month), so weekly runs only fetch what is new. `dryrun.yml` runs `STEPS="enso fires grids assemble"` in ~2 minutes
-to validate the assembly after script changes, without committing anything.
+## Manual / occasional steps
+| Command | When |
+|---|---|
+| `python3 build_all.py registries` then `assemble` | quarterly: FLUXNET2015/CH4, TCCON, COCCON, WAFNET, MexFlux site lists |
+| `python3 build_all.py socat` then `stations`, `assemble` | each June (SOCAT annual release; update the version in the URL) |
+| `chl_layer.py` | VIIRS chlorophyll anomaly (monthly; not yet in the weekly run) |
+| `glwd_layer.py` | GLWD v2 wetlands (static) |
 
-## Layout
-`build_all.py` + `run_all.sh` are the pipeline. `ndvi_hi.py`, `bg_fetch.py`, `geoscf_fetch2.py`, `s3ndvi.py` are called by it. Everything under `reference/` is kept only as a record of how the first snapshot was made and is not used by the workflow.
+Hand-maintained blocks in the page: `d-other` (other flux towers), `d-lsce` (LSCE EM27/SUN), `d-paf`
+(PanAmazonFlux), `d-saeon` (SAEON-EFTEON). PACE chlorophyll/NDVI, PMEL moorings and BGC-Argo were built
+interactively and are not yet refreshed automatically.
 
-## Page layout on GitHub Pages
-`dashboard-single.html` is the self-contained page (what the claude.ai artifact uses). `index.html` is a 0.3 MB shell
-that loads the same data from `data/` (made by `split_page.py`). `test_page.py` smoke-tests the page in headless
-Chromium before the workflow commits; the `refresh.yml.example` pip line installs Playwright for it.
+## Dry run
+`dryrun.yml` (manual trigger) runs `STEPS="enso fires grids assemble"` against the cached data in about two minutes,
+without committing — use it after changing scripts.
 
-## Registry layers
-`python3 build_all.py registries` refreshes the FLUXNET2015 / FLUXNET-CH4, TCCON and COCCON site lists (not part of the weekly `STEPS`; run it quarterly or when a network changes, then `assemble`).
-
-## SOCAT
-`python3 build_all.py socat` rebuilds the surface-ocean fCO2 cells from the SOCAT annual release (update the version in the URL each June), then `stations` and `assemble`. The weekly `stations` step carries the existing SOCAT cells forward when no new file is present.
-
-## Ocean layers
-* `chl_layer.py` — VIIRS NOAA-20 monthly chlorophyll from NASA OceanColor (needs EARTHDATA_TOKEN), log-ratio anomaly vs 2021–2025 → `chl/anom_*.webp` + `chl.json` (2° grid). Monthly; add to the weekly run once the assembler maps it (`d-chl` block + `chl-img-N` images, same pattern as SST).
-* PMEL moored CO₂ (`d-st` → `pmel`) comes from the PMEL ERDDAP table `all_pmel_co2_moorings` (pCO2_sw since 2010, monthly means of ≥20 values); BGC-Argo float positions (`d-bgc`) from the Argo GDAC `argo_synthetic-profile_index.txt.gz` (latest profile per float with BGC parameters, last 2 years). Both were built interactively on 22 Oct 2026; the aggregation code is in the project chat and should be folded into `build_all.py` as an `ocean` step.
-
-## Other flux towers
-Non-FLUXNET towers live in the page as the `d-other` JSON block (id, name, country, lat, lon, elev, pi, began, active, veg, sensors, note). To add a site, append an object to that block in `dashboard-single.html` and re-run `split_page.py`.
-
-## Failure handling
-`run_all.sh` treats data-source steps as non-fatal: if a provider is down (e.g. the OpenAQ API returning HTTP 500), the step
-is retried with backoff inside `http_get`, and if it still fails it is listed in `failed_steps.txt`, flagged as a warning
-annotation on the Actions run, and the page keeps that layer's previous data. Only `assemble`, `test` and `split` stop the run.
-OpenAQ series are re-fetched incrementally once a week per site (newest months only), new sites first.
+## How this was made
+This dashboard, its data pipeline and the weekly refresh were created using Claude Fable 5 (Anthropic), working with
+Ben Poulter (Spark Climate Solutions).

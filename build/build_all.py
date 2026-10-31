@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Single-file orchestrator for the El Niño GHG Dashboard data snapshot.
+"""Data pipeline for the El Niño GHG Dashboard.
 
-Usage: python3 build_all.py <step>   (see run_all.sh for the order)
-All outputs land in ./data ; `assemble` writes ../index.html from template.html + data.
-The slow/large steps (oco2, s3ndvi, openaq, gibs) are resumable: rerun to continue.
-This consolidates code that was first run interactively; the individual helper scripts
-(icos_ch4.py, openaq_fetch.py, geoscf_fetch2.py, bg_fetch.py, ndvi_hi.py, build_stations.py,
-build_aq.py, assemble.py) are kept alongside as references.
+Usage: python3 build_all.py <step>      (run_all.sh runs the weekly steps in order)
+Downloads and intermediate files go to ./data (cached between GitHub Actions runs).
+`assemble` replaces the data and image blocks inside ../dashboard-single.html in place,
+`test` checks the page in headless Chromium, and `split` writes the GitHub Pages copy
+(../index.html + ../data/). Long-running steps are resumable and budget-aware.
+Helper scripts called from here: ndvi_hi.py, bg_fetch.py, geoscf_fetch2.py, s3ndvi.py, cards.py.
 """
 import os, sys, re, io, csv, json, glob, gzip, base64, html, calendar, subprocess, datetime as dt
 import numpy as np
@@ -123,7 +123,7 @@ select distinct ?stId where { ?dobj cpmeta:hasObjectSpec ?spec . ?spec rdfs:labe
 
 # ---------------- OpenAQ ----------------
 def step_openaq():
-    import requests, time, math
+    import time, math
     K=os.environ['OPENAQ_API_KEY']; H={'X-API-Key':K}
     allr=[]
     for page in range(1,30):
@@ -322,7 +322,6 @@ def step_enso():
     json.dump(dict(weekly=wk,oni=oni,global_co2=gl,global_ch4=gl4,growth=gr,latest=dict(week=wk[-1],oni=oni[-1],phase=phase)),open(f'{D}/enso.json','w'))
     # CPC ENSO discussion: status + synopsis
     try:
-        import requests
         txt=http_get('https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso_advisory/ensodisc.shtml').text
         t=html.unescape(re.sub(r'\s+',' ',re.sub('<[^>]+>',' ',txt)))
         st=re.search(r'ENSO Alert System Status: ([^S]*?) Synopsis: (.*?)(?: \w+ [Cc]onditions| During)',t); iss=re.search(r'issued by CLIMATE PREDICTION CENTER/NCEP[^0-9]*?(\d{1,2} \w+ 20\d\d)',t)
@@ -375,7 +374,6 @@ def step_sst():
     json.dump(dict(ny=180,nx=360,scale=20,months=out),open(f'{D}/sst.json','w'))
 def step_registries():
     """FLUXNET2015 / FLUXNET-CH4 (AmeriFlux site API + site pages), TCCON (tccondata.org), COCCON (KIT repository page)."""
-    import requests
     from concurrent.futures import ThreadPoolExecutor
     UA={'User-Agent':'Mozilla/5.0 (dashboard-build)'}
     # --- FLUXNET
@@ -592,9 +590,7 @@ def replace_image_blocks(page):
 
 PAGE='../dashboard-single.html' if os.path.exists('../dashboard-single.html') else '../index.html'
 def step_assemble():
-    print('Assemble: run assemble.py (template placeholders) then apply the interactive page patches; '
-          'in practice the easiest path is to keep index.html as the page and replace only its <script id="d-*"> data blocks '
-          '(gzip+base64 for data-gz="1" blocks). See replace_data_blocks() below.')
+    """Rebuild the grid layers, then replace the page's data and image blocks in place (dashboard-single.html)."""
     step_grids()
     replace_data_blocks(PAGE)
     replace_image_blocks(PAGE)
@@ -603,6 +599,14 @@ def step_assemble():
         if os.path.getsize(PAGE)<15.9e6: break
         _requality_hires(PAGE,q)
     print('%s %.2f MB'%(PAGE,os.path.getsize(PAGE)/1e6))
+def latest_of(id_,o):
+    """Latest date a data block covers, used so an older cached file can never replace newer data in the page."""
+    if id_=='d-fires': return max(o.get('dates') or ['']) or None
+    if id_=='d-enso': return o['weekly'][-1][0]
+    if id_=='d-oco2': return o['cycles'][-1]['end']
+    if id_ in ('d-pm','d-co','d-firem','d-sst','d-ndvi2'): return o['months'][-1]['date']
+    if id_=='d-st': return max(max(tuple(d['latest'][:2]) for d in s_['vars'].values()) for L in o.values() for s_ in L if s_['vars'])
+    return None
 def replace_data_blocks(page):
     t=open(page).read()
     def gz(obj): return base64.b64encode(gzip.compress(json.dumps(obj,separators=(',',':')).encode(),9)).decode()
@@ -638,6 +642,11 @@ def replace_data_blocks(page):
                     merged.append(o if (o and o.get('days',0)>c.get('days',0) and o.get('b64') and len(base64.b64decode(o['b64']))==2*obj['nx']*obj['ny']) else c)
                 obj['cycles']=merged
         if isinstance(main,(list,dict)) and len(main)==0: print('empty, skipped',f); continue
+        mo=re.search(rf'<script id="{id_}" type="application/json" data-gz="1">(.*?)</script>',t,re.S)
+        if mo:
+            try: od,nd=latest_of(id_,json.loads(gzip.decompress(base64.b64decode(mo.group(1))))),latest_of(id_,obj)
+            except Exception: od=nd=None
+            if od and nd and nd<od: print(f'{id_}: new data end {nd} is older than the page ({od}); kept the page version'); continue
         t=re.sub(rf'<script id="{id_}" type="application/json" data-gz="1">.*?</script>',lambda m:f'<script id="{id_}" type="application/json" data-gz="1">'+gz(obj)+'</script>',t,flags=re.S)
     t=re.sub(r'(Snapshot )\d+ \w+ \d{4}',rf'\g<1>{SNAPSHOT}',t)
     open(page,'w').write(t); print('wrote',page)

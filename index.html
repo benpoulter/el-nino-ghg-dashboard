@@ -1363,7 +1363,7 @@ function fillStats(){const rows=[];rows.push(['ENSO phase (ONI '+ENSO.latest.oni
 function toggleStats(){fillStats();const o=statsP.classList.toggle('open');if(o){boxWasOpen=!boxEl.classList.contains('hidden');boxEl.classList.add('hidden');slist.classList.remove('open');}else if(innerWidth>800&&boxWasOpen)boxEl.classList.remove('hidden');}
 document.getElementById('statsBtn').addEventListener('click',toggleStats);
 document.getElementById('lStats').addEventListener('click',toggleStats);
-document.getElementById('statsClose').addEventListener('click',()=>{statsP.classList.remove('open');if(innerWidth>800&&boxWasOpen)boxEl.classList.remove('hidden');});
+document.getElementById('statsClose').addEventListener('click',()=>{statsP.classList.remove('open');statsP.style.display='';if(innerWidth>800&&boxWasOpen)boxEl.classList.remove('hidden');});
 
 /* ---------- map ---------- */
 const map=L.map('map',{crs:L.CRS.EPSG4326,worldCopyJump:false,minZoom:0,maxZoom:5.5,zoomSnap:0.25,zoomDelta:0.5,wheelPxPerZoomLevel:90,zoomControl:true,attributionControl:true,maxBounds:[[-90,-180],[90,540]],maxBoundsViscosity:1.0});
@@ -1915,7 +1915,7 @@ document.getElementById('mStats').addEventListener('click',()=>{fillStats();stat
 document.getElementById('mList').addEventListener('click',()=>{renderList();slist.classList.add('open');boxEl.classList.remove('open');});
 document.getElementById('mDl').addEventListener('click',()=>document.getElementById('lDl').click());
 document.getElementById('mContact').addEventListener('click',()=>{location.href='mailto:ben@sparkclimate.org?subject=El%20Ni%C3%B1o%20GHG%20Dashboard';});
-document.getElementById('statsClose').addEventListener('click',()=>{statsP.style.display='';});
+
 
 /* ---------- data-as-of table ---------- */
 function fillAsOf(){const ym=(y,m)=>`${MON[m-1]} ${y}`;const latest=net=>{let b=null;for(const s of NETS[net])for(const k in s.vars){const [y,m]=s.vars[k].latest;if(!b||y>b[0]||(y===b[0]&&m>b[1]))b=[y,m];}return b;};

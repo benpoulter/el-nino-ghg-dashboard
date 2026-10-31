@@ -2,7 +2,7 @@
 Download GLWD_v2_0_combined_classes_tif.zip from https://doi.org/10.6084/m9.figshare.28519994, extract
 GLWD_v2_0_area_pct.tif and GLWD_v2_0_main_class.tif, then run this script. Code as used on 23 Oct 2026."""
 
-import rasterio, numpy as np, json, base64, os
+import rasterio, numpy as np, json, base64
 from rasterio.enums import Resampling
 from PIL import Image
 W,H=5760,2240
