@@ -36,6 +36,9 @@ Hand-maintained blocks in the page: `d-other` (other flux towers), `d-lsce` (LSC
 (PanAmazonFlux), `d-saeon` (SAEON-EFTEON). PACE chlorophyll/NDVI, PMEL moorings and BGC-Argo were built
 interactively and are not yet refreshed automatically.
 
+## claude.ai copy
+`python3 make_lite.py ../dashboard-single.html <out.html>` makes the reduced copy (image basemaps re-encoded smaller) that fits the 16 MB limit of a claude.ai artifact.
+
 ## Dry run
 `dryrun.yml` (manual trigger) runs `STEPS="enso fires grids assemble"` against the cached data in about two minutes,
 without committing — use it after changing scripts.

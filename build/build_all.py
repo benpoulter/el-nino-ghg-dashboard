@@ -539,7 +539,7 @@ def step_grids():
     co=[]
     for y,m in MONTHS:
         cur=co_m(y,m); bl=[b for b in (co_m(yy,m) for yy in range(y-5,y)) if b is not None]
-        if cur is None or len(bl)<3: continue
+        if cur is None or len(bl)<3 or np.isfinite(cur).mean()<0.2: continue   # skip months with (almost) no AIRS data yet
         an=cur-np.nanmean(np.stack(bl),axis=0)
         co.append(dict(date=f'{y}-{m:02d}',partial=(y,m)>=MONTHS[-2],mean=float(np.nanmean(cur)),manom=float(np.nanmean(an)),nbase=len(bl),abs=base64.b64encode(np.where(np.isnan(cur),0,np.clip(np.round(cur),1,255)).astype(np.uint8).tobytes()).decode(),anom=base64.b64encode(np.where(np.isnan(an),-128,np.clip(np.round(an),-127,127)).astype(np.int8).tobytes()).decode()))
     if co: json.dump(dict(ny=120,nx=240,months=co),open(f'{D}/co.json','w'))
