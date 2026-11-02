@@ -11,7 +11,12 @@ errs=[]
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_page(viewport={'width':1400,'height':860})
     pg.on('pageerror',lambda e:errs.append('pageerror: '+str(e))); pg.on('console',lambda m: errs.append('console: '+m.text[:200]) if m.type=='error' else None)
-    pg.goto(url); pg.wait_for_function("()=>!document.getElementById('splash')",timeout=60000)
+    pg.goto(url)
+    try: pg.wait_for_function("()=>!document.getElementById('splash')",timeout=60000)
+    except Exception:
+        print('PAGE TEST FAILED: the page never finished loading (stuck on the splash screen)')
+        for e in errs: print('  ',e)
+        sys.exit(1)
     pg.evaluate("()=>{const b=document.getElementById('box');b.classList.remove('hidden');b.classList.add('open');}")
     pg.click('#tabs button[data-tab=bases]')
     for v in ['oco2','ndvi','s3','pm','co','firem','none']:

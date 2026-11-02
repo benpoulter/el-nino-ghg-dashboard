@@ -30,6 +30,13 @@ with ThreadPoolExecutor(6) as ex: list(ex.map(lambda j:get(*j),jobs))
 print('downloaded',flush=True)
 import time as _time
 _T0=float(_os.environ.get('BUILD_START',_time.time())); _B=float(_os.environ.get('BUILD_BUDGET_MIN','150'))*60
+# GIBS returns a valid but empty PNG for months it has not produced yet: drop those from the end
+while months:
+    _f=get(months[-1][0],months[-1][1],2880,1440)
+    try: _ok=_f is not None and np.isfinite(dec(_f)).mean()>0.05
+    except Exception: _ok=False
+    if _ok: break
+    print('MODIS: no data published yet for %d-%02d - skipped'%months[-1]); months=months[:-1]
 meta=[]; g2=[]
 os.makedirs('data',exist_ok=True)
 for y,m in months:
@@ -49,6 +56,7 @@ for y,m in months:
         ok=~np.isnan(b); S[ok]+=b[ok]; N[ok]+=1; del b
     if N.max()<3: print('MODIS: fewer than 3 baseline years for',y,m,'- skipped'); continue
     an=cur-np.where(N>0,S/np.maximum(N,1),np.nan); an[N<3]=np.nan
+    if not np.isfinite(an).any(): print('MODIS: empty anomaly for',y,m,'- skipped'); continue
     img=Image.fromarray(colorize(an),'RGBA').quantize(colors=128,method=Image.Quantize.FASTOCTREE); img.save(out,optimize=True)
     meta.append(dict(date=f"{y}-{m:02d}",baseline=f"{y-5}–{y-1} ({int(N.max())} yrs)",mean=float(np.nanmean(an)),file=os.path.basename(out),res=0.05 if hi else 0.125))
     fy=an.shape[0]//90; fx=an.shape[1]//180; a2=np.nanmean(an[:90*fy,:180*fx].reshape(90,fy,180,fx),axis=(1,3))

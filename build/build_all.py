@@ -8,7 +8,7 @@ Downloads and intermediate files go to ./data (cached between GitHub Actions run
 (../index.html + ../data/). Long-running steps are resumable and budget-aware.
 Helper scripts called from here: ndvi_hi.py, bg_fetch.py, geoscf_fetch2.py, s3ndvi.py, cards.py.
 """
-import os, sys, re, io, csv, json, glob, gzip, base64, html, calendar, subprocess, datetime as dt
+import os, sys, re, io, csv, json, glob, gzip, base64, html, calendar, subprocess, math, datetime as dt
 import numpy as np
 D='data'; os.makedirs(D,exist_ok=True)
 def _months(n=13):
@@ -344,8 +344,8 @@ def step_sst():
     from concurrent.futures import ThreadPoolExecutor
     today=dt.date.today(); days=[]
     for y,m in MONTHS:
-        nd=calendar.monthrange(y,m)[1] if (y,m)!=MONTHS[-1] else max(3,today.day-1)
-        days+=[dt.date(y,m,d) for d in range(3,nd+1,5)]
+        nd=calendar.monthrange(y,m)[1] if (y,m)!=MONTHS[-1] else today.day-2
+        days+=[dt.date(y,m,d) for d in range(3,nd+1,5) if dt.date(y,m,d)<=today-dt.timedelta(days=2)]
     def get(d):
         f=f'sst_hi/s_{d}.png'
         if not os.path.exists(f) or os.path.getsize(f)<5000: subprocess.run(['curl','-s','-L','-m','300','--retry','2','-A','Mozilla/5.0 (dashboard-build)','-o',f,f'{W}&TIME={d}'])
@@ -366,6 +366,7 @@ def step_sst():
             if f:
                 try: vs.append(dec(f))
                 except Exception: pass
+        vs=[v for v in vs if np.isfinite(v).mean()>0.05]
         if not vs: print('SST: no images for',y,m); continue
         a=np.nanmean(np.stack(vs),axis=0); a1=np.nanmean(a.reshape(180,8,360,8),axis=(1,3)); n34=float(np.nanmean(a1[85:95,10:60]))
         fn=f'{D}/sst/anom_{y}-{m:02d}.webp'; Image.fromarray(colorize(a),'RGBA').resize((1440,720),Image.BILINEAR).save(fn,'WEBP',quality=72,method=6)
@@ -500,14 +501,22 @@ def step_cards():
         r=http_get(url); r.raise_for_status(); open(f'{D}/cards/{name}','w').write(r.text)
     sh(f'{sys.executable} cards.py {D}/cards {D}/cards.json')
 def step_fires():
-    pts=[]
-    for u in ('https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv','https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv'):
-        sh(f'curl -s -o {D}/f24.csv {u}')
-        for r in csv.DictReader(open(f'{D}/f24.csv')):
-            if r['confidence']=='low': continue
-            pts.append((float(r['latitude']),float(r['longitude']),float(r['frp']),r['daynight']=='D',r['acq_date']))
+    """VIIRS 375 m active fires, last 24 h, from NASA FIRMS (Suomi-NPP, NOAA-20, NOAA-21)."""
+    pts=[]; got=0
+    for u in ('https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv',
+              'https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv',
+              'https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-21-viirs-c2/csv/J2_VIIRS_C2_Global_24h.csv'):
+        try: r=http_get(u,timeout=180)
+        except RuntimeError as e: print('FIRMS:',e); continue
+        if r.status_code!=200 or not r.text.startswith('latitude,'): print('FIRMS: unusable response from',u.split('/')[-1],r.status_code); continue
+        got+=1
+        for row in csv.DictReader(io.StringIO(r.text)):
+            if row['confidence']=='low': continue
+            pts.append((float(row['latitude']),float(row['longitude']),float(row['frp']),row['daynight']=='D',row['acq_date']))
+    if not pts: raise RuntimeError('FIRMS: no fire detections downloaded; keeping the previous 24-hour fires')
     a=np.empty((len(pts),3),np.int16); a[:,0]=np.round([p[0]*100 for p in pts]); a[:,1]=np.round([p[1]*100 for p in pts]); a[:,2]=np.clip(np.round([p[2] for p in pts]),0,32000)
-    json.dump(dict(n=len(pts),dates=sorted(set(p[4] for p in pts)),b64=base64.b64encode(a.tobytes()).decode(),day=int(sum(p[3] for p in pts))),open(f'{D}/fires.json','w'))
+    json.dump(dict(n=len(pts),dates=sorted(set(p[4] for p in pts)),sats=got,b64=base64.b64encode(a.tobytes()).decode(),day=int(sum(p[3] for p in pts))),open(f'{D}/fires.json','w'))
+    print('FIRMS:',len(pts),'detections from',got,'satellites')
 
 # ---------------- grid JSONs from the npy outputs of the reference scripts ----------------
 def _b16(a): return base64.b64encode(np.where(np.isnan(a),-32768,np.clip(np.round(a*10),-32000,32000)).astype(np.int16).tobytes()).decode()
@@ -549,14 +558,6 @@ def step_grids():
         fo.append(dict(date=f'{y}-{m:02d}',partial=(y,m)==MONTHS[-1],total=int(cur.sum()),manom=float(an.mean()),abs=enc(cur),anom=enc(an)))
     if fo: json.dump(dict(ny=90,nx=180,months=fo),open(f'{D}/firem.json','w'))
     print('firem',len(fo))
-def _requality_hires(page,q):
-    from PIL import Image
-    meta_file='ndvi_hi/meta.json'
-    if not os.path.exists(meta_file): return
-    meta=json.load(open(meta_file)); i=len(meta)-1; src=os.path.join('ndvi_hi',meta[i]['file'])
-    w=src.replace('.png',f'_q{q}.webp'); Image.open(src).convert('RGBA').save(w,'WEBP',quality=q,method=6)
-    b='data:image/webp;base64,'+base64.b64encode(open(w,'rb').read()).decode()
-    t=open(page).read(); t=re.sub(rf'<script id="ndvi-img-{i}" type="text/plain">.*?</script>',lambda m:f'<script id="ndvi-img-{i}" type="text/plain">{b}</script>',t,flags=re.S); open(page,'w').write(t); print('requality',q)
 def replace_image_blocks(page):
     """Swap the MODIS (ndvi_hi/) and Sentinel-3 (data/s3ndvi/) anomaly images and their meta into the page."""
     from PIL import Image
@@ -585,7 +586,7 @@ def replace_image_blocks(page):
         for i,m in enumerate(meta):
             blocks.append(f'<script id="{sid}-{i}" type="text/plain">{b64img(os.path.join(folder,m["file"]),webp)}</script>')
             keep.append({k:v for k,v in m.items() if k!='file'})
-        t=re.sub(rf'<script id="{did}" type="application/json">.*?</script>',lambda mm:f'<script id="{did}" type="application/json">'+json.dumps(keep)+'</script>\n'+'\n'.join(blocks),t,flags=re.S)
+        t=re.sub(rf'<script id="{did}" type="application/json">.*?</script>',lambda mm:f'<script id="{did}" type="application/json">'+safe_json(keep,did)+'</script>\n'+'\n'.join(blocks),t,flags=re.S)
     open(page,'w').write(t)
 
 PAGE='../dashboard-single.html' if os.path.exists('../dashboard-single.html') else '../index.html'
@@ -594,11 +595,17 @@ def step_assemble():
     step_grids()
     replace_data_blocks(PAGE)
     replace_image_blocks(PAGE)
-    # keep the page under the 16 MB artifact limit by lowering the hi-res NDVI WebP quality if needed
-    for q in (62,52,42):
-        if os.path.getsize(PAGE)<15.9e6: break
-        _requality_hires(PAGE,q)
     print('%s %.2f MB'%(PAGE,os.path.getsize(PAGE)/1e6))
+def _clean(o,path,bad):
+    if isinstance(o,float) and not math.isfinite(o): bad.append(path); return None
+    if isinstance(o,dict): return {k:_clean(v,f'{path}.{k}',bad) for k,v in o.items()}
+    if isinstance(o,list): return [_clean(v,f'{path}[{i}]',bad) for i,v in enumerate(o)]
+    return o
+def safe_json(obj,name=''):
+    """JSON with NaN/Infinity replaced by null: Python writes NaN, which browsers cannot parse (one NaN stops the page loading)."""
+    bad=[]; o=_clean(obj,name,bad)
+    if bad: print(f'{name or "block"}: {len(bad)} non-finite values replaced by null, e.g. {bad[:3]}')
+    return json.dumps(o,ensure_ascii=False,separators=(',',':'),allow_nan=False)
 def latest_of(id_,o):
     """Latest date a data block covers, used so an older cached file can never replace newer data in the page."""
     if id_=='d-fires': return max(o.get('dates') or ['']) or None
@@ -609,7 +616,7 @@ def latest_of(id_,o):
     return None
 def replace_data_blocks(page):
     t=open(page).read()
-    def gz(obj): return base64.b64encode(gzip.compress(json.dumps(obj,separators=(',',':')).encode(),9)).decode()
+    def gz(obj): return base64.b64encode(gzip.compress(safe_json(obj).encode(),9)).decode()
     blocks={'d-st':f'{D}/stations.json','d-oco2':f'{D}/oco2_fwd.json','d-enso':f'{D}/enso.json','d-fires':f'{D}/fires.json','d-pm':f'{D}/pm.json','d-co':f'{D}/co.json','d-firem':f'{D}/firem.json','d-ndvi2':f'{D}/ndvi2.json','d-sst':f'{D}/sst_nofile.json'}
     if os.path.exists(f'{D}/sst.json'):
         sj=json.load(open(f'{D}/sst.json')); [c.pop('file',None) for c in sj['months']]; json.dump(sj,open(f'{D}/sst_nofile.json','w'))
@@ -618,17 +625,17 @@ def replace_data_blocks(page):
         if all(len(v)>50 for v in fj.values()): t=re.sub(r'<script id="d-flux" type="application/json" data-gz="1">.*?</script>',lambda m:'<script id="d-flux" type="application/json" data-gz="1">'+gz(fj)+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/col.json'):
         cj=json.load(open(f'{D}/col.json'))
-        if len(cj.get('TCCON',[]))>20 and len(cj.get('COCCON',[]))>20: t=re.sub(r'<script id="d-col" type="application/json">.*?</script>',lambda m:'<script id="d-col" type="application/json">'+json.dumps(cj,separators=(',',':'))+'</script>',t,flags=re.S)
+        if len(cj.get('TCCON',[]))>20 and len(cj.get('COCCON',[]))>20: t=re.sub(r'<script id="d-col" type="application/json">.*?</script>',lambda m:'<script id="d-col" type="application/json">'+safe_json(cj,'d-col')+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/wafnet.json'):
         wj=json.load(open(f'{D}/wafnet.json'))
-        if len(wj)>=10: t=re.sub(r'<script id="d-wafnet" type="application/json">.*?</script>',lambda m:'<script id="d-wafnet" type="application/json">'+json.dumps(wj,ensure_ascii=False,separators=(',',':'))+'</script>',t,flags=re.S)
+        if len(wj)>=10: t=re.sub(r'<script id="d-wafnet" type="application/json">.*?</script>',lambda m:'<script id="d-wafnet" type="application/json">'+safe_json(wj,'d-wafnet')+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/mexflux.json'):
         mj=json.load(open(f'{D}/mexflux.json'))
-        if len(mj)>=20: t=re.sub(r'<script id="d-mexflux" type="application/json">.*?</script>',lambda m:'<script id="d-mexflux" type="application/json">'+json.dumps(mj,ensure_ascii=False,separators=(',',':'))+'</script>',t,flags=re.S)
+        if len(mj)>=20: t=re.sub(r'<script id="d-mexflux" type="application/json">.*?</script>',lambda m:'<script id="d-mexflux" type="application/json">'+safe_json(mj,'d-mexflux')+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/cards.json'):
-        t=re.sub(r'<script id="d-cards" type="application/json">.*?</script>',lambda m:'<script id="d-cards" type="application/json">'+open(f'{D}/cards.json').read()+'</script>',t,flags=re.S)
+        t=re.sub(r'<script id="d-cards" type="application/json">.*?</script>',lambda m:'<script id="d-cards" type="application/json">'+safe_json(json.load(open(f'{D}/cards.json')),'d-cards')+'</script>',t,flags=re.S)
     if os.path.exists(f'{D}/outlook.json'):
-        t=re.sub(r'<script id="d-outlook" type="application/json">.*?</script>',lambda m:'<script id="d-outlook" type="application/json">'+open(f'{D}/outlook.json').read()+'</script>',t,flags=re.S)
+        t=re.sub(r'<script id="d-outlook" type="application/json">.*?</script>',lambda m:'<script id="d-outlook" type="application/json">'+safe_json(json.load(open(f'{D}/outlook.json')),'d-outlook')+'</script>',t,flags=re.S)
     for id_,f in blocks.items():
         if not os.path.exists(f): print('missing',f); continue
         obj=json.load(open(f)); main=obj.get('cycles') or obj.get('months') or (obj if isinstance(obj,list) else obj)
@@ -642,6 +649,8 @@ def replace_data_blocks(page):
                     merged.append(o if (o and o.get('days',0)>c.get('days',0) and o.get('b64') and len(base64.b64decode(o['b64']))==2*obj['nx']*obj['ny']) else c)
                 obj['cycles']=merged
         if isinstance(main,(list,dict)) and len(main)==0: print('empty, skipped',f); continue
+        if id_=='d-fires' and (not obj.get('n') or not obj.get('dates')): print('d-fires: no detections in the new file; kept the page version'); continue
+        if id_=='d-enso' and not obj.get('weekly'): print('d-enso: no weekly data; kept the page version'); continue
         mo=re.search(rf'<script id="{id_}" type="application/json" data-gz="1">(.*?)</script>',t,re.S)
         if mo:
             try: od,nd=latest_of(id_,json.loads(gzip.decompress(base64.b64decode(mo.group(1))))),latest_of(id_,obj)
