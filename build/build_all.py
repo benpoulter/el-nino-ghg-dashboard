@@ -686,6 +686,9 @@ def replace_data_blocks(page):
         t=re.sub(rf'<script id="{id_}" type="application/json" data-gz="1">.*?</script>',lambda m:f'<script id="{id_}" type="application/json" data-gz="1">'+gz(obj)+'</script>',t,flags=re.S)
     t=re.sub(r'(Snapshot )\d+ \w+ \d{4}',rf'\g<1>{SNAPSHOT}',t)
     open(page,'w').write(t); print('wrote',page)
+def step_compose():
+    """Build dashboard-single.html and index.html from src/page.html (code) + data/ (data blocks)."""
+    sh(f'{sys.executable} compose.py ..')
 def step_test():
     sh(f'{sys.executable} test_page.py {PAGE}')
 def step_split():
@@ -697,5 +700,11 @@ def step_split():
     srv=_sp.Popen([sys.executable,'-m','http.server','8765'],cwd='..',stdout=_sp.DEVNULL,stderr=_sp.DEVNULL); _t.sleep(2)
     try: sh(f'{sys.executable} test_page.py http://localhost:8765/index.html')   # the page as GitHub Pages serves it
     finally: srv.terminate()
+    # the page code must still match src/page.html (code changes belong in src/, never in the generated files)
+    blk=re.compile(r'<script id="([^"]+)" type="(application/json|text/plain)"( data-gz="1")?>(.*?)</script>',re.S)
+    strip=lambda x: blk.sub(lambda m:f'<script id="{m.group(1)}" type="{m.group(2)}"{m.group(3) or ""}></script>',x)
+    if os.path.exists('../src/page.html') and strip(open('../dashboard-single.html').read())!=open('../src/page.html').read():
+        print('::warning::dashboard-single.html code differs from src/page.html - edit src/page.html, not the generated file')
+
 if __name__=='__main__':
     globals()['step_'+sys.argv[1]]()

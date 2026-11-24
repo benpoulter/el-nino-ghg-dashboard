@@ -23,7 +23,7 @@ jobs:
         with: {python-version: '3.11'}
       - run: pip install numpy pillow requests playwright && python -m playwright install --with-deps chromium
       # refresh NOAA flask, observatory and near-real-time data, rebuild and test the page
-      - run: STEPS="noaa stations assemble test split" bash build/run_all.sh
+      - run: STEPS="compose noaa stations assemble test split" bash build/run_all.sh
       - run: python3 build/noaa_check.py dashboard-single.html build/data
       - run: |
           git config user.name "dashboard-bot" && git config user.email "bot@users.noreply.github.com"

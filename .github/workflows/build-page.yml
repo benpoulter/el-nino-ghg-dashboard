@@ -1,0 +1,23 @@
+name: Build page
+# Rebuilds the published page whenever the page code (src/page.html) or a hand-maintained site list changes.
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'data/d-other.json', 'data/d-paf.json', 'data/d-saeon.json', 'data/d-lsce.json']
+  workflow_dispatch:
+concurrency: {group: dashboard-data, cancel-in-progress: false}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install numpy pillow requests playwright && python -m playwright install --with-deps chromium
+      - run: STEPS="compose test split" bash build/run_all.sh
+      - run: |
+          git config user.name "dashboard-bot" && git config user.email "bot@users.noreply.github.com"
+          git add index.html dashboard-single.html data
+          if git diff --cached --quiet; then echo "Nothing to rebuild."; exit 0; fi
+          git commit -m "Build page from src ($(git log -1 --format=%h -- src data))" && git pull --rebase && git push

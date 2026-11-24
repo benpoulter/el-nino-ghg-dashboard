@@ -20,5 +20,5 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - run: pip install numpy pillow requests
-      - run: STEPS="enso fires grids assemble" bash build/run_all.sh
+      - run: STEPS="compose enso fires grids assemble test" bash build/run_all.sh
       - run: ls -la index.html && git diff --stat

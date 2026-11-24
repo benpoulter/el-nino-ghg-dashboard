@@ -1,5 +1,17 @@
 # Build pipeline — El Niño GHG Dashboard
 
+## Where things live
+| Path | What it is | Edit it? |
+|---|---|---|
+| `src/page.html` | the page code: HTML, CSS and JavaScript (≈0.4 MB) | **yes — all code and layout changes go here** |
+| `data/` | one file per data block (`d-*.json`, `*-img-N.webp/png`), written by the pipeline | only the hand-maintained site lists: `d-other.json`, `d-paf.json`, `d-saeon.json`, `d-lsce.json` |
+| `dashboard-single.html` | self-contained page = `src/page.html` + `data/` (≈31 MB) | no — generated |
+| `index.html` | the GitHub Pages page (code only; loads `data/`) | no — generated |
+
+`build/compose.py` builds the two generated files from `src/page.html` and `data/`. Pushing a change to `src/` or to
+one of the hand-maintained site lists starts the **Build page** workflow, which composes, tests and commits the
+generated files — so every edit is a small file and can be made in the GitHub web editor.
+
 The dashboard is one self-contained page, `dashboard-single.html`. A weekly GitHub Actions workflow
 (`.github/workflows/refresh.yml`, copy of `refresh.yml.example`) re-downloads the data, rebuilds the data
 blocks inside that page, tests it, and writes the GitHub Pages copy (`index.html` + `data/`).
@@ -12,7 +24,7 @@ blocks inside that page, tests it, and writes the GitHub Pages copy (`index.html
 | `CDSE_S3_KEY`, `CDSE_S3_SECRET` | Copernicus Data Space S3 (Sentinel-3 NDVI) |
 
 ## Weekly steps (`run_all.sh`, in order)
-`noaa` NOAA GML flask, observatory in-situ and Mauna Loa preliminary CO₂/CH₄ ·
+`compose` builds the page from `src/` + `data/` · `noaa` NOAA GML flask, observatory in-situ and Mauna Loa preliminary CO₂/CH₄ ·
 `icos` ICOS Carbon Portal CO₂/CH₄ (+ platform and flask tags) · `openaq` PM₂.₅ monitors (incremental, weekly per site) ·
 `stations` merges all station networks (carries SOCAT and PMEL forward) · `oco2` OCO-2 16-day 0.25° windows ·
 `modis` MODIS NDVI anomaly images · `s3ndvi` Sentinel-3 NDVI dekads · `geoscf` GEOS-CF PM₂.₅ ·
