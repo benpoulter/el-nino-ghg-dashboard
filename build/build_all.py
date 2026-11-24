@@ -44,6 +44,23 @@ def metrics(pts):
     base=[p[2] for p in pts if p[1]==m and y-5<=p[0]<=y-1]; prev=[p[2] for p in pts if p[0]==y-1 and p[1]==m]
     return dict(latest=[y,m,v],anom=round(v-sum(base)/len(base),2) if len(base)>=3 else None,yoy=round(v-prev[0],2) if prev else None,nbase=len(base),series=[list(p) for p in pts])
 
+def nrt_monthly(f,after,min_hours=100):
+    """Monthly means from NOAA's near-real-time hourly in-situ file, using only hours flagged as valid and selected
+    as background ('..' in the first two flag columns), for months after `after`; months with < min_hours are left out.
+    Checked against GML's own preliminary Mauna Loa monthly means: agreement within +/-0.2 ppm."""
+    if not os.path.exists(f) or os.path.getsize(f)<5000: return []
+    acc={}; fields=None
+    for line in open(f):
+        if line.startswith('#'): continue
+        p=line.split()
+        if fields is None: fields=p; continue
+        d=dict(zip(fields,p))
+        try: y,m,v=int(d['year']),int(d['month']),float(d['value'])
+        except Exception: continue
+        if v<=0 or not d.get('qcflag','').startswith('..') or (y,m)<=after: continue
+        acc.setdefault((y,m),[]).append(v)
+    return [(y,m,round(sum(v)/len(v),2)) for (y,m),v in sorted(acc.items()) if len(v)>=min_hours]
+
 # ---------------- NOAA GGRN flasks (CO2, CH4) + Mauna Loa preliminary ----------------
 def step_noaa():
     for gas in ('co2','ch4'):
@@ -57,6 +74,8 @@ def step_noaa():
     os.makedirs(f'{D}/noaa_obs',exist_ok=True)
     for gas in ('co2','ch4'):
         for st in ('brw','mlo','mko','smo','spo'): sh(f'curl -s -o {D}/noaa_obs/{gas}_{st}.txt https://gml.noaa.gov/aftp/data/trace_gases/{gas}/in-situ/surface/txt/{gas}_{st}_surface-insitu_1_ccgg_MonthlyData.txt')
+    for st in ('BRW','MLO','MKO','SMO','SPO'):   # near-real-time hourly CO2 (preliminary; ~1-2 day latency)
+        sh(f'curl -s -o {D}/noaa_obs/nrt_co2_{st}.txt https://gml.noaa.gov/aftp/data/trace_gases/co2/in-situ/surface/nrt/co2_{st}_surface-insitu_1_ccgg_HourlyData_nrt.txt')
 
 # ---------------- ICOS (CO2, CH4) via SPARQL + anonymous /cpb ----------------
 Q_ST='''prefix cpmeta: <http://meta.icos-cp.eu/ontologies/cpmeta/>
@@ -222,13 +241,21 @@ def step_stations():
             nm=hdr.get('site_name','').replace(' Atmospheric Baseline Observatory','').replace('Observatory','').strip(); nm={'Barrow':'Utqiaġvik (Barrow)','Tutuila':'American Samoa (Tutuila)'}.get(nm,nm)
             so=obs.setdefault(st.upper(),dict(id=st.upper(),net='NOAAobs',name=nm,country='United States' if st in ('brw','mlo','mko') else 'American Samoa' if st=='smo' else 'Antarctica',lat=float(hdr['site_latitude']),lon=float(hdr['site_longitude']),elev=float(hdr['site_elevation']),measurement='Continuous in-situ analyser (NOAA GML baseline observatory)',vars={}))
             so['vars'][gas]=metrics(pts)
-    if 'MLO' in obs and 'co2' in obs['MLO']['vars'] and os.path.exists(f'{D}/co2_mm_mlo.csv'):
+    for st,so in obs.items():
+        d=so['vars'].get('co2'); add=nrt_monthly(f'{D}/noaa_obs/nrt_co2_{st}.txt',tuple(d['series'][-1][:2])) if d else []
+        if add: d.update(metrics([tuple(x) for x in d['series']]+add)); d['prelimFrom']=f"{add[0][0]}-{add[0][1]:02d}"; d['prelimSrc']='nrt'
+    if 'MLO' in obs and 'co2' in obs['MLO']['vars'] and not obs['MLO']['vars']['co2'].get('prelimFrom') and os.path.exists(f'{D}/co2_mm_mlo.csv'):
         d=obs['MLO']['vars']['co2']; last=tuple(d['series'][-1][:2]); add=[]
         for line in open(f'{D}/co2_mm_mlo.csv'):
             p=line.strip().split(',')
             if p[0].isdigit() and (int(p[0]),int(p[1]))>last: add.append((int(p[0]),int(p[1]),float(p[3])))
         if add: d.update(metrics([tuple(x) for x in d['series']]+add)); d['prelimFrom']=f"{add[0][0]}-{add[0][1]:02d}"
-    icos=json.load(open(f'{D}/icos.json')); aq=json.load(open(f'{D}/aq.json'))
+    # networks not rebuilt in this run (e.g. the monthly NOAA-only check without a cache) keep the page's current data
+    def _page_net(k):
+        mm=re.search(r'<script id="d-st" type="application/json" data-gz="1">(.*?)</script>',open(PAGE).read(),re.S)
+        return json.loads(gzip.decompress(base64.b64decode(mm.group(1)))).get(k,[])
+    icos=json.load(open(f'{D}/icos.json')) if os.path.exists(f'{D}/icos.json') else {x['id']:x for x in _page_net('icos')}
+    aq=json.load(open(f'{D}/aq.json')) if os.path.exists(f'{D}/aq.json') else _page_net('aq')
     socat=json.load(open(f'{D}/socat.json')) if os.path.exists(f'{D}/socat.json') else None
     if socat is None:
         try:

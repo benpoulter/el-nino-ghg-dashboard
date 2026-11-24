@@ -24,6 +24,9 @@ Data steps are non-fatal: a provider outage is retried with backoff, then skippe
 earlier than what the page already shows. Only `assemble`, `test` and `split` stop a run; `test` runs on both the
 single file and the GitHub Pages layout.
 
+## Monthly NOAA check (10th of each month)
+`.github/workflows/noaa-monthly.yml` re-downloads the NOAA flask, observatory and near-real-time hourly CO₂ files, rebuilds and tests the page, commits only if anything changed, and writes a table to the run’s summary page (`build/noaa_check.py`): for each observatory, the end of the official release, the latest month shown, and how many months behind it is, with a warning for any CO₂ series more than two months old.
+
 ## Manual / occasional steps
 | Command | When |
 |---|---|
