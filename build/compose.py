@@ -1,7 +1,8 @@
 """Compose the dashboard from its source and its data.
 
   src/page.html   the page code (HTML, CSS, JavaScript): edit this to change the dashboard
-  data/           one file per data block (d-*.json, *-img-N.webp|png), shared with the GitHub Pages copy
+  src/data/       hand-maintained site lists (d-other, d-paf, d-saeon, d-lsce) - edit these
+  data/           every other data block (d-*.json, *-img-N.webp|png), produced by the pipeline and published on gh-pages
 
 Usage: python3 compose.py [repo root]   -> writes dashboard-single.html (self-contained) and index.html (Pages shell)
        python3 compose.py --extract     -> one-off: (re)create src/page.html from dashboard-single.html
@@ -18,8 +19,8 @@ def extract():
 
 def body(id_, kind, gz):
     for ext, mime in (('json', None), ('webp', 'image/webp'), ('png', 'image/png')):
-        f = os.path.join(DATA, f'{id_}.{ext}')
-        if not os.path.exists(f): continue
+        f = next((c for c in (os.path.join(ROOT, 'src', 'data', f'{id_}.{ext}'), os.path.join(DATA, f'{id_}.{ext}')) if os.path.exists(c)), None)
+        if not f: continue
         if mime: return f'data:{mime};base64,' + base64.b64encode(open(f, 'rb').read()).decode()
         raw = open(f, encoding='utf-8').read()
         return base64.b64encode(gzip.compress(raw.encode(), 9, mtime=0)).decode() if gz else raw.replace('</script', '<\\/script')

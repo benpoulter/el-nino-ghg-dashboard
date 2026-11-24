@@ -1,12 +1,14 @@
 name: Dry run (assembly only)
 on:
   workflow_dispatch:
+permissions: {contents: write}
 jobs:
   dry:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - run: bash build/fetch_site.sh   # the published data live on the gh-pages branch
       - uses: actions/cache@v4
         with:
           path: |

@@ -3,6 +3,7 @@ on:
   schedule: [{cron: '0 6 * * 1'}]   # Mondays 06:00 UTC
   workflow_dispatch:
 concurrency: {group: dashboard-data, cancel-in-progress: false}   # never overlap with the monthly NOAA check
+permissions: {contents: write}
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,6 +18,7 @@ jobs:
       BUILD_BUDGET_MIN: "240"
     steps:
       - uses: actions/checkout@v4
+      - run: bash build/fetch_site.sh   # the published data live on the gh-pages branch
       - uses: actions/cache/restore@v4
         with:
           path: |
@@ -42,6 +44,4 @@ jobs:
             build/firesm
             build/ndvi_hi
           key: dashboard-data-${{ github.run_id }}
-      - run: |
-          git config user.name "dashboard-bot" && git config user.email "bot@users.noreply.github.com"
-          git add index.html dashboard-single.html data && git commit -m "Data refresh $(date -u +%F)" && git push
+      - run: bash build/publish.sh

@@ -3,12 +3,14 @@ on:
   schedule: [{cron: '0 12 10 * *'}]   # 10th of every month, 12:00 UTC
   workflow_dispatch:
 concurrency: {group: dashboard-data, cancel-in-progress: false}   # never overlap with the weekly refresh
+permissions: {contents: write}
 jobs:
   noaa:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - run: bash build/fetch_site.sh   # the published data live on the gh-pages branch
       - uses: actions/cache/restore@v4
         with:
           path: |
@@ -25,8 +27,4 @@ jobs:
       # refresh NOAA flask, observatory and near-real-time data, rebuild and test the page
       - run: STEPS="compose noaa stations assemble test split" bash build/run_all.sh
       - run: python3 build/noaa_check.py dashboard-single.html build/data
-      - run: |
-          git config user.name "dashboard-bot" && git config user.email "bot@users.noreply.github.com"
-          git add index.html dashboard-single.html data
-          if git diff --cached --quiet; then echo "No new NOAA data this month."; exit 0; fi
-          git commit -m "NOAA monthly check $(date -u +%F)" && git pull --rebase && git push
+      - run: bash build/publish.sh
