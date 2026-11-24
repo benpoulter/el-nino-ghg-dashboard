@@ -4,13 +4,16 @@
 | Path | What it is | Edit it? |
 |---|---|---|
 | `src/page.html` | the page code: HTML, CSS and JavaScript (≈0.4 MB) | **yes — all code and layout changes go here** |
-| `data/` | one file per data block (`d-*.json`, `*-img-N.webp/png`), written by the pipeline | only the hand-maintained site lists: `d-other.json`, `d-paf.json`, `d-saeon.json`, `d-lsce.json` |
-| `dashboard-single.html` | self-contained page = `src/page.html` + `data/` (≈31 MB) | no — generated |
-| `index.html` | the GitHub Pages page (code only; loads `data/`) | no — generated |
+| `src/data/` | hand-maintained site lists: `d-other.json`, `d-paf.json`, `d-saeon.json`, `d-lsce.json` | **yes** |
+| `data/` (on the `gh-pages` branch) | every other data block (`d-*.json`, `*-img-N.webp/png`), written by the pipeline | no — generated |
+| `dashboard-single.html` (on `gh-pages`) | self-contained page = `src/page.html` + data (≈31 MB) | no — generated |
+| `index.html` (on `gh-pages`) | the GitHub Pages page (code only; loads `data/`) | no — generated |
 
-`build/compose.py` builds the two generated files from `src/page.html` and `data/`. Pushing a change to `src/` or to
-one of the hand-maintained site lists starts the **Build page** workflow, which composes, tests and commits the
-generated files — so every edit is a small file and can be made in the GitHub web editor.
+`main` holds only source: the page code, the site lists, the pipeline and the workflows. Every workflow first restores
+the published data from the `gh-pages` branch (`fetch_site.sh`), rebuilds and tests the page (`compose.py`, `run_all.sh`),
+and then replaces `gh-pages` with a single new commit (`publish.sh`); GitHub Pages serves that branch. Pushing a change
+to `src/` starts the **Build page** workflow — so every edit is a small file and can be made in the GitHub web editor.
+To work locally: `bash build/fetch_site.sh && python3 build/compose.py` gives you the full page.
 
 The dashboard is one self-contained page, `dashboard-single.html`. A weekly GitHub Actions workflow
 (`.github/workflows/refresh.yml`, copy of `refresh.yml.example`) re-downloads the data, rebuilds the data

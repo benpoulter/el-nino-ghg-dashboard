@@ -8,3 +8,9 @@ build/ndvi_hi/
 build/oco2dl/
 build/failed_steps.txt
 build/flux_pages/
+
+# generated (built by the workflows and published on the gh-pages branch)
+/index.html
+/dashboard-single.html
+/data/
+/.nojekyll
