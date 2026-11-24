@@ -1922,8 +1922,8 @@ function fillAsOf(){const ym=(y,m)=>`${MON[m-1]} ${y}`;const latest=net=>{let b=
   const cnt=(net,y,m)=>NETS[net].filter(s=>Object.values(s.vars).some(d=>d.latest[0]===y&&d.latest[1]===m)).length;
   const rows=[];const i=latest('ICOS'),n=latest('NOAA'),a=latest('OpenAQ');
   rows.push(['ICOS stations (CO₂, CH₄)',ym(...i),`${cnt('ICOS',...i)} of ${NETS.ICOS.length} sites report that month`]);
-  rows.push(['NOAA GGRN flasks (CO₂, CH₄)',ym(...n),`${cnt('NOAA',...n)} of ${NETS.NOAA.length} sites; Mauna Loa extended with preliminary data`]);
-  if(NETS.NOAAobs.length){const no=latest('NOAAobs');rows.push(['NOAA baseline observatories (in-situ)',ym(...no),`${cnt('NOAAobs',...no)} of ${NETS.NOAAobs.length} sites; Mauna Loa extended with preliminary data`]);}
+  rows.push(['NOAA GGRN flasks (CO₂, CH₄)',ym(...n),`${cnt('NOAA',...n)} of ${NETS.NOAA.length} sites; CO₂ from 2026 is NOAA near-real-time (preliminary)`]);
+  if(NETS.NOAAobs.length){const no=latest('NOAAobs');rows.push(['NOAA baseline observatories (in-situ)',ym(...no),`${cnt('NOAAobs',...no)} of ${NETS.NOAAobs.length} sites; CO₂ from 2026 is NOAA near-real-time (preliminary)`]);}
   rows.push(['OpenAQ PM₂.₅ monitors',ym(...a),`${cnt('OpenAQ',...a)} of ${NETS.OpenAQ.length} sites`]);
   if(NETS.PMEL.length){const pm=latest('PMEL');rows.push(['PMEL moored pCO₂',ym(...pm),`${cnt('PMEL',...pm)} of ${NETS.PMEL.length} buoys`]);}
   const pc=PCHL.months[PCHL.months.length-1];rows.push(['PACE chlorophyll anomaly',ym(+pc.date.slice(0,4),+pc.date.slice(5,7)),'monthly, OCI']);const pn=PNDVI.months[PNDVI.months.length-1];rows.push(['PACE NDVI anomaly',ym(+pn.date.slice(0,4),+pn.date.slice(5,7)),'monthly, OCI LANDVI']);
