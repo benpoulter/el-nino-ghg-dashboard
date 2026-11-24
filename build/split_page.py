@@ -19,3 +19,7 @@ t=re.sub(r'<script id="((?:ndvi|s3|sst|chl|glwd|pchl|pndvi|tc)-img-\d+)" type="t
 # the s3 images are PNG but the loader expects data/s3-img-N.png, ndvi webp -> both handled by extension
 open(os.path.join(out,'index.html'),'w').write(t)
 print('shell %.2f MB, data files %d'%(os.path.getsize(os.path.join(out,'index.html'))/1e6,len(os.listdir(os.path.join(out,'data')))))
+# remove data files left over from blocks that no longer exist (e.g. a month that dropped out of the window)
+live={m for m in re.findall(r'<script id="([^"]+)" type="(?:application/json|text/plain)"',open(src).read())}
+for f in os.listdir(os.path.join(out,'data')):
+    if f.rsplit('.',1)[0] not in live: os.remove(os.path.join(out,'data',f)); print('removed stale data file',f)

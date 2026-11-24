@@ -56,6 +56,14 @@ with sync_playwright() as p:
             if not hit: errs.append(f'{closer} is covered by another element')
             pg.evaluate(f"()=>document.querySelector('{closer}').click()"); pg.wait_for_timeout(150)
         except Exception as e: errs.append(f'{opener}/{closer} check failed: {str(e)[:60]}')
+    # missing optional data must not stop the page (only on the served layout, where data are separate files)
+    if url.startswith('http'):
+        for block in ('d-paf','d-cards','d-chl'):
+            q=b.new_page(); q.route(f'**/data/{block}.json', lambda r: r.fulfill(status=404, body=''))
+            q.goto(url)
+            try: q.wait_for_function("()=>!document.getElementById('splash')",timeout=60000)
+            except Exception: errs.append(f'page does not load when data/{block}.json is missing (missing optional data must be tolerated)')
+            q.close()
     # indicator cards rendered with values and sparklines
     kc=pg.evaluate("()=>[...document.querySelectorAll('.kv')].filter(e=>/[0-9]/.test(e.textContent)).length")
     if kc<4: errs.append(f'only {kc} of 4 indicator cards have values')
